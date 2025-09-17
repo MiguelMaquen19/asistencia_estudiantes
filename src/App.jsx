@@ -34,16 +34,100 @@ function App() {
   const [vista, setVista] = useState("principal");
   const [sidebarColapsado, setSidebarColapsado] = useState(window.innerWidth < 1024);
 
+  // Función para verificar si la sesión ha expirado
+  const verificarExpiracionSesion = () => {
+    const ultimaActividad = localStorage.getItem('ultimaActividad');
+    const tiempoLimite = 10 * 60 * 1000; // 10 minutos en milisegundos
+    
+    if (ultimaActividad) {
+      const tiempoTranscurrido = Date.now() - parseInt(ultimaActividad);
+      
+      if (tiempoTranscurrido > tiempoLimite) {
+        // La sesión ha expirado
+        localStorage.removeItem('docenteAutenticado');
+        localStorage.removeItem('docenteInfo');
+        localStorage.removeItem('ultimaActividad');
+        setEsDocenteAutenticado(false);
+        setDocenteInfo(null);
+        setVista("principal");
+        setVistaAdmin("home");
+        setSidebarColapsado(window.innerWidth < 1024);
+        return true; // Sesión expirada
+      }
+    }
+    return false; // Sesión válida
+  };
+
+  // Función para actualizar la última actividad
+  const actualizarUltimaActividad = () => {
+    localStorage.setItem('ultimaActividad', Date.now().toString());
+  };
+
   // Restaurar sesión desde localStorage al cargar la página
   useEffect(() => {
     const savedAuth = localStorage.getItem('docenteAutenticado');
     const savedDocente = localStorage.getItem('docenteInfo');
     
     if (savedAuth === 'true' && savedDocente) {
-      setEsDocenteAutenticado(true);
-      setDocenteInfo(JSON.parse(savedDocente));
+      // Verificar si la sesión ha expirado antes de restaurarla
+      if (!verificarExpiracionSesion()) {
+        setEsDocenteAutenticado(true);
+        setDocenteInfo(JSON.parse(savedDocente));
+        // Actualizar la actividad al cargar la página
+        actualizarUltimaActividad();
+      }
     }
   }, []);
+
+  // Manejar el cierre de la página/pestaña
+  useEffect(() => {
+    const manejarCierrePagina = () => {
+      if (esDocenteAutenticado) {
+        // Guardar timestamp cuando se cierra la página
+        localStorage.setItem('ultimaActividad', Date.now().toString());
+      }
+    };
+
+    // Escuchar cuando se va a cerrar la página/pestaña
+    window.addEventListener('beforeunload', manejarCierrePagina);
+    
+    return () => {
+      window.removeEventListener('beforeunload', manejarCierrePagina);
+    };
+  }, [esDocenteAutenticado]);
+
+  // Verificar periodicamente si la sesión ha expirado (cada minuto)
+  useEffect(() => {
+    if (esDocenteAutenticado) {
+      const intervalo = setInterval(() => {
+        verificarExpiracionSesion();
+      }, 60000); // Verificar cada minuto
+
+      return () => clearInterval(intervalo);
+    }
+  }, [esDocenteAutenticado]);
+
+  // Actualizar última actividad en interacciones del usuario
+  useEffect(() => {
+    const actualizarActividad = () => {
+      if (esDocenteAutenticado) {
+        actualizarUltimaActividad();
+      }
+    };
+
+    // Escuchar clicks, movimientos del mouse, teclas presionadas
+    const eventos = ['click', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    eventos.forEach(evento => {
+      document.addEventListener(evento, actualizarActividad);
+    });
+
+    return () => {
+      eventos.forEach(evento => {
+        document.removeEventListener(evento, actualizarActividad);
+      });
+    };
+  }, [esDocenteAutenticado]);
 
   // Inicializar sidebarColapsado según el tamaño de pantalla y escuchar cambios
   useEffect(() => {
@@ -80,9 +164,10 @@ function App() {
         setDni("");
         setMostrarModalAdmin(false);
         
-        // Guardar en localStorage para persistencia
+        // Guardar en localStorage para persistencia y establecer la actividad inicial
         localStorage.setItem('docenteAutenticado', 'true');
         localStorage.setItem('docenteInfo', JSON.stringify(docenteData));
+        actualizarUltimaActividad();
       } else {
         setError("❌ No tienes permisos de docente");
         setDni("");
@@ -106,9 +191,10 @@ function App() {
     setVistaAdmin("home");
     setSidebarColapsado(window.innerWidth < 1024);
     
-    // Limpiar localStorage al cerrar sesión
+    // Limpiar localStorage al cerrar sesión manualmente
     localStorage.removeItem('docenteAutenticado');
     localStorage.removeItem('docenteInfo');
+    localStorage.removeItem('ultimaActividad');
   };
 
   const toggleSidebar = () => {

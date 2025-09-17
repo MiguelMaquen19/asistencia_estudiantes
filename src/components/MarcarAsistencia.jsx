@@ -21,7 +21,9 @@ import {
   LogOut,
   UserCheck,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  X
 } from "lucide-react";
 import BarcodeScanner from "react-qr-barcode-scanner";
 
@@ -39,6 +41,9 @@ export default function MarcarAsistencia({ esDocente }) {
   // Estados para funciones de docente
   const [estudiantesSeleccionados, setEstudiantesSeleccionados] = useState([]);
   const [cargandoMasivo, setCargandoMasivo] = useState(false);
+
+  // Estado para el modal de historial
+  const [modalHistorial, setModalHistorial] = useState({ show: false, estudiante: null });
 
   // New state to trigger re-renders for real-time updates
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -86,7 +91,7 @@ export default function MarcarAsistencia({ esDocente }) {
       .sort((a, b) => {
         const ta = a.timestamp?.toDate?.() || new Date(a.timestamp || 0);
         const tb = b.timestamp?.toDate?.() || new Date(b.timestamp || 0);
-        return tb - ta;
+        return tb - ta; // ORDEN DESCENDENTE - más reciente primero
       });
     
     return registrosEnSesion[0]?.accion || null;
@@ -128,7 +133,7 @@ export default function MarcarAsistencia({ esDocente }) {
         ...a,
         date: a.timestamp?.toDate?.() || new Date(a.timestamp || 0)
       }))
-      .sort((a, b) => a.date - b.date); // Orden ascendente por fecha
+      .sort((a, b) => a.date - b.date); // Orden ascendente por fecha para procesamiento
 
     const sessions = [];
     let i = 0;
@@ -157,6 +162,9 @@ export default function MarcarAsistencia({ esDocente }) {
         i++;
       }
     }
+
+    // ORDENAR SESIONES POR FECHA DESCENDENTE (más reciente primero)
+    sessions.sort((a, b) => b.entry.date.getTime() - a.entry.date.getTime());
 
     // Calcular total en milisegundos
     const totalMillis = sessions.reduce((sum, s) => {
@@ -336,6 +344,16 @@ export default function MarcarAsistencia({ esDocente }) {
     if (!v) return "";
     const d = typeof v.toDate === "function" ? v.toDate() : new Date(v);
     return d.toLocaleString();
+  };
+
+  // Función para abrir el modal de historial
+  const abrirHistorial = (estudiante) => {
+    setModalHistorial({ show: true, estudiante });
+  };
+
+  // Función para cerrar el modal de historial
+  const cerrarHistorial = () => {
+    setModalHistorial({ show: false, estudiante: null });
   };
 
   const handleScan = async (err, result) => {
@@ -641,7 +659,7 @@ export default function MarcarAsistencia({ esDocente }) {
           </div>
 
           {esDocente ? (
-            // Vista para docente: Lista detallada por estudiante
+            // Vista para docente: Lista con último registro y botón "Ver más"
             <div className="space-y-4">
               {estudiantesAsistenciaFiltrados.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
@@ -656,47 +674,59 @@ export default function MarcarAsistencia({ esDocente }) {
                   const isPresent = sessions.length > 0 && sessions[sessions.length - 1].isOpen;
                   const headerBgClass = isPresent ? 'bg-green-100' : 'bg-red-100';
                   const dotClass = isPresent ? 'bg-green-500 animate-pulse' : 'bg-red-500';
+                  
+                  // Mostrar solo la sesión más reciente (primera en el array porque está ordenado descendente)
+                  const ultimaSesion = sessions[0];
 
                   return (
                     <div key={estudiante.id} className="bg-white rounded-lg border border-blue-200 shadow-sm overflow-hidden">
                       {/* Header del estudiante */}
                       <div className={`${headerBgClass} px-4 py-3 border-b border-blue-200`}>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${dotClass}`}></div>
-                          <h3 className="text-sm font-semibold text-gray-800">{estudiante.nombre}</h3>
-                          <span className={`ml-auto px-2 py-1 rounded-full text-xs font-medium ${
-                            isPresent ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
-                          }`}>
-                            {isPresent ? <CheckCircle size={10} className="inline mr-1" /> : null}
-                            {isPresent ? "Presente" : "Completado"}
-                          </span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${dotClass}`}></div>
+                            <h3 className="text-sm font-semibold text-gray-800">{estudiante.nombre}</h3>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              isPresent ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                            }`}>
+                              {isPresent ? <CheckCircle size={10} className="inline mr-1" /> : null}
+                              {isPresent ? "Presente" : "Completado"}
+                            </span>
+                            {sessions.length > 1 && (
+                              <button
+                                onClick={() => abrirHistorial(estudiante)}
+                                className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+                              >
+                                <Eye size={12} />
+                                Ver más
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                       
-                      {/* Lista de sesiones */}
-                      {sessions.length === 0 ? (
-                        <p className="px-4 py-3 text-sm text-gray-500 text-center">Sin registros de asistencia</p>
-                      ) : (
-                        <div className="divide-y divide-blue-100">
-                          {sessions.map((session, index) => (
-                            <div key={index} className="px-4 py-3">
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-600">
-                                <span><strong>Entrada:</strong> {formatDate(session.entry.timestamp)}</span>
-                                {session.exit ? (
-                                  <>
-                                    <span><strong>Salida:</strong> {formatDate(session.exit.timestamp)}</span>
-                                    <span className="font-medium text-blue-600">{session.duration}</span>
-                                  </>
-                                ) : (
-                                  <span className="font-medium text-green-600">
-                                    <Clock size={12} className="inline mr-1" />
-                                    En curso: {session.duration}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                      {/* Último registro */}
+                      {ultimaSesion ? (
+                        <div className="px-4 py-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-600">
+                            <span><strong>Entrada:</strong> {formatDate(ultimaSesion.entry.timestamp)}</span>
+                            {ultimaSesion.exit ? (
+                              <>
+                                <span><strong>Salida:</strong> {formatDate(ultimaSesion.exit.timestamp)}</span>
+                                <span className="font-medium text-blue-600">{ultimaSesion.duration}</span>
+                              </>
+                            ) : (
+                              <span className="font-medium text-green-600">
+                                <Clock size={12} className="inline mr-1" />
+                                En curso: {ultimaSesion.duration}
+                              </span>
+                            )}
+                          </div>
                         </div>
+                      ) : (
+                        <p className="px-4 py-3 text-sm text-gray-500 text-center">Sin registros de asistencia</p>
                       )}
                       
                       {/* Total */}
@@ -823,6 +853,110 @@ export default function MarcarAsistencia({ esDocente }) {
                   ? ""
                   : `Sesión ${sesionSeleccionada}`}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Historial Completo */}
+      {modalHistorial.show && modalHistorial.estudiante && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
+            {/* Header del modal */}
+            <div className="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Historial de Asistencia</h2>
+                <p className="text-blue-100 text-sm">{modalHistorial.estudiante.nombre} - Sesión {sesionSeleccionada}</p>
+              </div>
+              <button
+                onClick={cerrarHistorial}
+                className="text-white hover:text-blue-200 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Contenido del modal */}
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {(() => {
+                const { sessions, totalTime } = getAllAsistenciaSessions(modalHistorial.estudiante);
+                
+                if (sessions.length === 0) {
+                  return (
+                    <p className="text-center py-8 text-gray-500">Sin registros de asistencia</p>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {/* Resumen */}
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-700 font-medium">Total de sesiones:</span>
+                        <span className="text-blue-600 font-semibold">{sessions.length}</span>
+                      </div>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-gray-700 font-medium">Tiempo total acumulado:</span>
+                        <span className="text-blue-600 font-semibold">
+                          <Clock size={16} className="inline mr-1" />
+                          {totalTime}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Lista de sesiones */}
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-medium text-gray-800 border-b border-gray-200 pb-2">
+                        Registro detallado (más reciente primero):
+                      </h3>
+                      {sessions.map((session, index) => {
+                        const isOpen = session.isOpen;
+                        return (
+                          <div key={index} className={`border rounded-lg p-4 ${isOpen ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-gray-800">Sesión {index + 1}</h4>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                isOpen ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-800'
+                              }`}>
+                                {isOpen ? 'En curso' : 'Completada'}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium text-gray-600">Entrada:</span>
+                                <p className="text-gray-800">{formatDate(session.entry.timestamp)}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-600">Salida:</span>
+                                <p className="text-gray-800">
+                                  {session.exit ? formatDate(session.exit.timestamp) : 'En curso...'}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-600">Duración:</span>
+                                <p className={`font-medium ${isOpen ? 'text-green-600' : 'text-blue-600'}`}>
+                                  <Clock size={14} className="inline mr-1" />
+                                  {session.duration}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer del modal */}
+            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
+              <button
+                onClick={cerrarHistorial}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
