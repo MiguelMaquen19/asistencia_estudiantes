@@ -27,46 +27,7 @@ import {
 } from "lucide-react";
 import BarcodeScanner from "react-qr-barcode-scanner";
 
-// Definir los temas (mismo objeto que en App.tsx)
-const themes = {
-  blue: {
-    primary: '#1E3A8A',
-    secondary: '#3B82F6',
-    background: '#F0F4F8',
-    textPrimary: '#111827',
-    textSecondary: '#4B5563',
-  },
-  gray: {
-    primary: '#4B5563',
-    secondary: '#6B7280',
-    background: '#F3F4F6',
-    textPrimary: '#111827',
-    textSecondary: '#6B7280',
-  },
-  green: {
-    primary: '#065F46',
-    secondary: '#34D399',
-    background: '#ECFDF5',
-    textPrimary: '#111827',
-    textSecondary: '#064E3B',
-  },
-  purple: {
-    primary: '#5B21B6',
-    secondary: '#8B5CF6',
-    background: '#F5F3FF',
-    textPrimary: '#111827',
-    textSecondary: '#6D28D9',
-  },
-  indigo: {
-    primary: '#312E81',
-    secondary: '#6366F1',
-    background: '#EEF2FF',
-    textPrimary: '#111827',
-    textSecondary: '#4F46E5',
-  },
-};
-
-export default function MarcarAsistencia({ esDocente, theme }) {
+export default function MarcarAsistencia({ esDocente, theme, themes }) {
   const [estudiantes, setEstudiantes] = useState([]);
   const [asistencias, setAsistencias] = useState([]);
   const [busqueda, setBusqueda] = useState("");
@@ -440,7 +401,7 @@ export default function MarcarAsistencia({ esDocente, theme }) {
       {/* Header con información del modo */}
       <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: `${themeStyles.primary}20`, borderColor: themeStyles.textSecondary }}>
         <div className="flex items-center gap-2">
-          <UserCheck size={20} style={{ color: esDocente ? '#059669' : themeStyles.primary }} />
+          <UserCheck size={20} style={{ color: esDocente ? '#047857' : themeStyles.primary }} />
           <span className="font-medium" style={{ color: themeStyles.textPrimary }}>
             {esDocente ? "Modo Docente - Control de Asistencia" : "Registro de Asistencia"}
           </span>
@@ -560,7 +521,7 @@ export default function MarcarAsistencia({ esDocente, theme }) {
                   onClick={marcarEntradaMasiva}
                   disabled={cargandoMasivo}
                   className="flex items-center gap-2 px-3 py-2 rounded-md text-sm disabled:opacity-50"
-                  style={{ backgroundColor: '#059669', color: '#FFFFFF' }}
+                  style={{ backgroundColor: '#047857', color: '#FFFFFF' }}
                 >
                   <LogIn size={16} />
                   Marcar Entrada
@@ -649,7 +610,7 @@ export default function MarcarAsistencia({ esDocente, theme }) {
         <>
           <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: esDocente ? `${themeStyles.primary}20` : '#DCFCE7', borderColor: esDocente ? themeStyles.textSecondary : '#BBF7D0' }}>
             <div className="flex items-center gap-2">
-              <Users size={18} style={{ color: esDocente ? themeStyles.primary : '#059669' }} />
+              <Users size={18} style={{ color: esDocente ? themeStyles.primary : '#047857' }} />
               <span className="font-medium" style={{ color: esDocente ? themeStyles.textPrimary : '#065F46' }}>
                 {esDocente 
                   ? `Control Sesión ${sesionSeleccionada}: ${estudiantesAsistenciaFiltrados.length} estudiantes (${presentesFiltrados.length} presentes)`
@@ -714,7 +675,7 @@ export default function MarcarAsistencia({ esDocente, theme }) {
                                 <span className="font-medium" style={{ color: themeStyles.primary }}>{ultimaSesion.duration}</span>
                               </>
                             ) : (
-                              <span className="font-medium" style={{ color: '#059669' }}>
+                              <span className="font-medium" style={{ color: '#047857' }}>
                                 <Clock size={12} className="inline mr-1" />
                                 En curso: {ultimaSesion.duration}
                               </span>
@@ -914,7 +875,7 @@ export default function MarcarAsistencia({ esDocente, theme }) {
                               </div>
                               <div>
                                 <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Duración:</span>
-                                <p className={`font-medium ${isOpen ? 'text-green-600' : ''}`} style={{ color: isOpen ? '#059669' : themeStyles.primary }}>
+                                <p className={`font-medium ${isOpen ? 'text-green-600' : ''}`} style={{ color: isOpen ? '#047857' : themeStyles.primary }}>
                                   <Clock size={14} className="inline mr-1" />
                                   {session.duration}
                                 </p>

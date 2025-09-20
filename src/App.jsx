@@ -31,43 +31,43 @@ import { db } from "../src/firebase";
 // Definir los temas
 export const themes = {
   blue: {
-    primary: '#1E3A8A',
+    primary: '#1E40AF',
     secondary: '#3B82F6',
-    background: '#F0F4F8',
-    textPrimary: '#111827',
-    textSecondary: '#4B5563',
+    background: '#F8FAFC',
+    textPrimary: '#1F2937',
+    textSecondary: '#6B7280',
     name: 'Azul'
   },
   gray: {
-    primary: '#4B5563',
+    primary: '#374151',
     secondary: '#6B7280',
-    background: '#F3F4F6',
-    textPrimary: '#111827',
+    background: '#F9FAFB',
+    textPrimary: '#1F2937',
     textSecondary: '#6B7280',
     name: 'Gris'
   },
   green: {
-    primary: '#065F46',
-    secondary: '#34D399',
-    background: '#ECFDF5',
-    textPrimary: '#111827',
-    textSecondary: '#064E3B',
+    primary: '#047857',
+    secondary: '#10B981',
+    background: '#F0FDF4',
+    textPrimary: '#1F2937',
+    textSecondary: '#065F46',
     name: 'Verde'
   },
   purple: {
-    primary: '#5B21B6',
-    secondary: '#8B5CF6',
-    background: '#F5F3FF',
-    textPrimary: '#111827',
-    textSecondary: '#6D28D9',
+    primary: '#7C3AED',
+    secondary: '#A855F7',
+    background: '#FAF5FF',
+    textPrimary: '#1F2937',
+    textSecondary: '#7C2D12',
     name: 'Púrpura'
   },
   indigo: {
-    primary: '#312E81',
+    primary: '#4F46E5',
     secondary: '#6366F1',
-    background: '#EEF2FF',
-    textPrimary: '#111827',
-    textSecondary: '#4F46E5',
+    background: '#F0F4FF',
+    textPrimary: '#1F2937',
+    textSecondary: '#4338CA',
     name: 'Índigo'
   },
 };
@@ -452,7 +452,7 @@ function App() {
         {vista === "principal" && !esDocenteAutenticado && (
           <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
             <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
-              <MarcarAsistencia esDocente={esDocenteAutenticado} theme={selectedTheme} />
+              <MarcarAsistencia esDocente={esDocenteAutenticado} theme={selectedTheme} themes={themes} />
             </div>
           </div>
         )}
@@ -612,7 +612,7 @@ function App() {
               {vista === "principal" && (
                 <div className="p-4 sm:p-6">
                   <div className="bg-white rounded-xl shadow-lg p-6">
-                    <MarcarAsistencia esDocente={true} theme={selectedTheme} />
+                    <MarcarAsistencia esDocente={true} theme={selectedTheme} themes={themes} />
                   </div>
                 </div>
               )}
