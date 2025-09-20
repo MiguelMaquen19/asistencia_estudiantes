@@ -8,8 +8,9 @@ import { ClipboardCheck, Calendar, Search, Download, FileText, Users, Graduation
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { themes } from "../App";
 
-export default function ListadoAsistencias() {
+export default function ListadoAsistencias({ selectedTheme }) {
   const [asistencias, setAsistencias] = useState([]);
   const [asistenciasFiltradas, setAsistenciasFiltradas] = useState([]);
   const [filtroFecha, setFiltroFecha] = useState("hoy");
@@ -17,6 +18,9 @@ export default function ListadoAsistencias() {
   const [busqueda, setBusqueda] = useState("");
   const [recordsPerPage, setRecordsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Obtener estilos del tema seleccionado
+  const themeStyles = themes[selectedTheme];
 
   // Escuchar cambios en la base de datos
   useEffect(() => {
@@ -48,12 +52,6 @@ export default function ListadoAsistencias() {
       minute: '2-digit',
       second: '2-digit'
     });
-  };
-
-  const formatDateTime = (v) => {
-    if (!v) return "";
-    const d = typeof v.toDate === "function" ? v.toDate() : new Date(v);
-    return d.toLocaleString("es-ES");
   };
 
   // Aplicar filtros simples
@@ -241,7 +239,7 @@ export default function ListadoAsistencias() {
           overflow: 'linebreak'
         },
         headStyles: {
-          fillColor: [41, 128, 185],
+          fillColor: [themeStyles.primary.replace('#', '0x').slice(0, 8), themeStyles.primary.replace('#', '0x').slice(2, 4), themeStyles.primary.replace('#', '0x').slice(4, 6), themeStyles.primary.replace('#', '0x').slice(6, 8)].map(c => parseInt(c, 16)),
           textColor: 255,
           fontSize: 8,
           fontStyle: 'bold',
@@ -283,12 +281,12 @@ export default function ListadoAsistencias() {
   const totalSalidas = asistenciasFiltradas.filter(a => a.accion === "salida").length;
 
   return (
-    <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-md border border-gray-200 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 rounded-xl shadow-md border space-y-4 sm:space-y-6" style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}>
       {/* Header con título y botones - Mejorado para móviles */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h3 className="text-lg sm:text-xl font-semibold text-sky-800 flex items-center gap-2">
-            <ClipboardCheck size={20} />
+          <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2" style={{ color: themeStyles.textPrimary }}>
+            <ClipboardCheck size={20} style={{ color: themeStyles.primary }}/>
             Listado de Asistencias
           </h3>
           
@@ -296,7 +294,8 @@ export default function ListadoAsistencias() {
           <div className="flex justify-center sm:justify-end w-full sm:w-auto gap-2">
             <button
               onClick={exportarExcel}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-white rounded-md text-sm hover:bg-opacity-80 disabled:opacity-50 transition-colors duration-200"
+              style={{ backgroundColor: '#10B981'}}
               disabled={asistenciasFiltradas.length === 0}
             >
               <Download size={16} />
@@ -304,7 +303,8 @@ export default function ListadoAsistencias() {
             </button>
             <button
               onClick={exportarPDF}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 disabled:opacity-50"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-white rounded-md text-sm hover:bg-opacity-80 disabled:opacity-50 transition-colors duration-200"
+              style={{ backgroundColor: '#EF4444' }}
               disabled={asistenciasFiltradas.length === 0}
             >
               <FileText size={16} />
@@ -315,48 +315,60 @@ export default function ListadoAsistencias() {
 
         {/* Estadísticas - Más estrechas para móvil y tablet */}
         <div className="w-full px-1 sm:px-0">
-          <div className="grid grid-cols-3 gap-0.5 sm:gap-2 md:gap-3 p-1.5 sm:p-3 md:p-4 bg-sky-50 rounded-lg border border-sky-200">
+          <div className="grid grid-cols-3 gap-0.5 sm:gap-2 md:gap-3 p-1.5 sm:p-3 md:p-4 rounded-lg border" style={{ backgroundColor: themeStyles.primary + '11', borderColor: themeStyles.primary }}>
             <div className="text-center px-0.5 sm:px-1">
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-sky-700">{asistenciasFiltradas.length}</p>
-              <p className="text-xs text-gray-600 truncate">Total</p>
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold" style={{ color: themeStyles.primary }}>{asistenciasFiltradas.length}</p>
+              <p className="text-xs truncate" style={{ color: themeStyles.textSecondary }}>Total</p>
             </div>
             <div className="text-center px-0.5 sm:px-1">
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-blue-600">{totalEntradas}</p>
-              <p className="text-xs text-gray-600 truncate">Entradas</p>
+              <p className="text-xs truncate" style={{ color: themeStyles.textSecondary }}>Entradas</p>
             </div>
             <div className="text-center px-0.5 sm:px-1">
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-red-600">{totalSalidas}</p>
-              <p className="text-xs text-gray-600 truncate">Salidas</p>
+              <p className="text-xs truncate" style={{ color: themeStyles.textSecondary }}>Salidas</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Filtros - Optimizados para móvil y tablet */}
-      <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border" style={{ backgroundColor: themeStyles.primary + '05', borderColor: themeStyles.textSecondary }}>
         {/* Búsqueda */}
         <div className="sm:col-span-2 lg:col-span-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <Search size={16} className="inline mr-1" /> Buscar
+          <label className="block text-sm font-medium mb-2" style={{ color: themeStyles.textPrimary }}>
+            <Search size={16} className="inline mr-1" style={{ color: themeStyles.primary }}/> Buscar
           </label>
           <input
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre o código..."
-            className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border rounded-md p-2.5 text-sm focus:outline-none focus:ring-2"
+            style={{ 
+                borderColor: themeStyles.textSecondary,
+                backgroundColor: themeStyles.background,
+                color: themeStyles.textPrimary,
+                focusRingColor: themeStyles.primary
+            }}
           />
         </div>
 
         {/* Filtro Fecha */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <Calendar size={16} className="inline mr-1" /> Período
+          <label className="block text-sm font-medium mb-2" style={{ color: themeStyles.textPrimary }}>
+            <Calendar size={16} className="inline mr-1" style={{ color: themeStyles.primary }}/> Período
           </label>
           <select
             value={filtroFecha}
             onChange={(e) => setFiltroFecha(e.target.value)}
-            className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border rounded-md p-2.5 text-sm focus:outline-none focus:ring-2"
+            style={{ 
+                borderColor: themeStyles.textSecondary,
+                backgroundColor: themeStyles.background,
+                color: themeStyles.textPrimary,
+                focusRingColor: themeStyles.primary
+            }}
           >
             <option value="hoy">Hoy</option>
             <option value="ayer">Ayer</option>
@@ -368,13 +380,19 @@ export default function ListadoAsistencias() {
 
         {/* Filtro Sesión */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium mb-2" style={{ color: themeStyles.textPrimary }}>
             Sesión
           </label>
           <select
             value={filtroSesion}
             onChange={(e) => setFiltroSesion(e.target.value)}
-            className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border rounded-md p-2.5 text-sm focus:outline-none focus:ring-2"
+            style={{ 
+                borderColor: themeStyles.textSecondary,
+                backgroundColor: themeStyles.background,
+                color: themeStyles.textPrimary,
+                focusRingColor: themeStyles.primary
+            }}
           >
             <option value="">Todas las sesiones</option>
             {sesionesUnicas.map(sesion => (
@@ -385,7 +403,7 @@ export default function ListadoAsistencias() {
 
         {/* Selección de registros por página */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium mb-2" style={{ color: themeStyles.textPrimary }}>
             Registros por página
           </label>
           <select
@@ -394,7 +412,13 @@ export default function ListadoAsistencias() {
               setRecordsPerPage(Number(e.target.value));
               setCurrentPage(1);
             }}
-            className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border rounded-md p-2.5 text-sm focus:outline-none focus:ring-2"
+            style={{ 
+                borderColor: themeStyles.textSecondary,
+                backgroundColor: themeStyles.background,
+                color: themeStyles.textPrimary,
+                focusRingColor: themeStyles.primary
+            }}
           >
             <option value={10}>10</option>
             <option value={25}>25</option>
@@ -406,22 +430,22 @@ export default function ListadoAsistencias() {
       {/* Lista de asistencias - Responsive */}
       <div className="space-y-3 sm:space-y-2">
         {/* Encabezados de columnas - Solo visible en desktop */}
-        <div className="hidden lg:block bg-gray-100 text-sky-800 text-left border border-gray-200 rounded-md shadow-sm">
+        <div className="hidden lg:block border rounded-md shadow-sm" style={{ backgroundColor: themeStyles.primary + '1A', borderColor: themeStyles.primary }}>
           <div className="grid grid-cols-6 gap-4 items-center p-4">
             <div className="col-span-2">
-              <p className="text-sm font-medium">Nombre</p>
+              <p className="text-sm font-medium" style={{ color: themeStyles.primary }}>Nombre</p>
             </div>
             <div className="col-span-1">
-              <p className="text-sm font-medium">Código</p>
+              <p className="text-sm font-medium" style={{ color: themeStyles.primary }}>Código</p>
             </div>
             <div className="col-span-1">
-              <p className="text-sm font-medium">Tipo</p>
+              <p className="text-sm font-medium" style={{ color: themeStyles.primary }}>Tipo</p>
             </div>
             <div className="col-span-1">
-              <p className="text-sm font-medium">Sesión</p>
+              <p className="text-sm font-medium" style={{ color: themeStyles.primary }}>Sesión</p>
             </div>
             <div className="col-span-1">
-              <p className="text-sm font-medium">Acción</p>
+              <p className="text-sm font-medium" style={{ color: themeStyles.primary }}>Acción</p>
             </div>
           </div>
         </div>
@@ -431,7 +455,8 @@ export default function ListadoAsistencias() {
           {paginatedAsistencias.map((a) => (
             <li
               key={a.id}
-              className="bg-white p-4 sm:p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200"
+              className="p-4 sm:p-5 rounded-lg border shadow-sm hover:shadow-md transition-all duration-200"
+              style={{ backgroundColor: '#FFFFFF', borderColor: themeStyles.textSecondary }}
             >
               {/* Vista Desktop - Grid */}
               <div className="hidden lg:grid grid-cols-6 gap-4 items-center">
@@ -439,33 +464,32 @@ export default function ListadoAsistencias() {
                 <div className="col-span-2">
                   <div className="flex items-center gap-2">
                     {a.tipo === "externo" ? (
-                      <Users size={16} className="text-gray-600 flex-shrink-0" />
+                      <Users size={16} className="flex-shrink-0" style={{ color: themeStyles.textSecondary }} />
                     ) : (
-                      <GraduationCap size={16} className="text-sky-700 flex-shrink-0" />
+                      <GraduationCap size={16} className="flex-shrink-0" style={{ color: themeStyles.primary }}/>
                     )}
-                    <span className="font-medium text-gray-700 truncate">{a.nombre}</span>
+                    <span className="font-medium truncate" style={{ color: themeStyles.textPrimary }}>{a.nombre}</span>
                   </div>
                 </div>
 
                 {/* Código - 1 columna */}
                 <div className="col-span-1">
-                  <span className="text-sm text-gray-600 font-mono">{a.codigo}</span>
+                  <span className="text-sm font-mono" style={{ color: themeStyles.textSecondary }}>{a.codigo}</span>
                 </div>
 
                 {/* Tipo - 1 columna */}
                 <div className="col-span-1">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    a.tipo === "externo" 
-                      ? "bg-gray-100 text-gray-800" 
-                      : "bg-sky-100 text-sky-800"
-                  }`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium`} style={{ 
+                      backgroundColor: a.tipo === "externo" ? '#E5E7EB' : themeStyles.primary + '1A',
+                      color: a.tipo === "externo" ? '#4B5563' : themeStyles.primary
+                  }}>
                     {a.tipo === "externo" ? "Externo" : "USS"}
                   </span>
                 </div>
 
                 {/* Sesión - 1 columna */}
                 <div className="col-span-1 text-center">
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                  <span className="px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: themeStyles.secondary + '33', color: themeStyles.secondary }}>
                     {a.sesion}
                   </span>
                 </div>
@@ -475,13 +499,13 @@ export default function ListadoAsistencias() {
                   <div className="flex items-center gap-1">
                     {a.accion === "entrada" ? (
                       <>
-                        <LogIn size={14} className="text-blue-600 flex-shrink-0" />
-                        <span className="text-blue-600 font-medium text-sm">Entrada</span>
+                        <LogIn size={14} className="flex-shrink-0" style={{ color: '#2563EB' }} />
+                        <span className="font-medium text-sm" style={{ color: '#2563EB' }}>Entrada</span>
                       </>
                     ) : (
                       <>
-                        <LogOut size={14} className="text-red-600 flex-shrink-0" />
-                        <span className="text-red-600 font-medium text-sm">Salida</span>
+                        <LogOut size={14} className="flex-shrink-0" style={{ color: '#DC2626' }} />
+                        <span className="font-medium text-sm" style={{ color: '#DC2626' }}>Salida</span>
                       </>
                     )}
                   </div>
@@ -494,23 +518,22 @@ export default function ListadoAsistencias() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {a.tipo === "externo" ? (
-                      <Users size={20} className="text-gray-600 flex-shrink-0" />
+                      <Users size={20} className="flex-shrink-0" style={{ color: themeStyles.textSecondary }}/>
                     ) : (
-                      <GraduationCap size={20} className="text-sky-700 flex-shrink-0" />
+                      <GraduationCap size={20} className="flex-shrink-0" style={{ color: themeStyles.primary }}/>
                     )}
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-sky-800 text-base sm:text-lg truncate">{a.nombre}</h3>
-                      <p className="text-sm text-gray-600 font-mono">{a.codigo}</p>
+                      <h3 className="font-semibold text-base sm:text-lg truncate" style={{ color: themeStyles.textPrimary }}>{a.nombre}</h3>
+                      <p className="text-sm font-mono" style={{ color: themeStyles.textSecondary }}>{a.codigo}</p>
                     </div>
                   </div>
                   
                   {/* Badge de tipo */}
                   <div className="flex-shrink-0">
-                    <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                      a.tipo === "externo" 
-                        ? "bg-gray-100 text-gray-800" 
-                        : "bg-sky-100 text-sky-800"
-                    }`}>
+                    <span className={`px-3 py-1.5 rounded-full text-sm font-medium`} style={{ 
+                        backgroundColor: a.tipo === "externo" ? '#E5E7EB' : themeStyles.primary + '1A',
+                        color: a.tipo === "externo" ? '#4B5563' : themeStyles.primary
+                    }}>
                       {a.tipo === "externo" ? "Externo" : "USS"}
                     </span>
                   </div>
@@ -519,25 +542,25 @@ export default function ListadoAsistencias() {
                 {/* Información de la asistencia */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div className="space-y-1">
-                    <span className="text-sm font-medium text-gray-500">Sesión</span>
+                    <span className="text-sm font-medium" style={{ color: themeStyles.textSecondary }}>Sesión</span>
                     <div>
-                      <span className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-md text-sm font-medium">
+                      <span className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ backgroundColor: themeStyles.secondary + '33', color: themeStyles.secondary }}>
                         {a.sesion}
                       </span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-sm font-medium text-gray-500">Acción</span>
+                    <span className="text-sm font-medium" style={{ color: themeStyles.textSecondary }}>Acción</span>
                     <div className="flex items-center gap-2">
                       {a.accion === "entrada" ? (
                         <>
-                          <LogIn size={14} className="text-blue-600 flex-shrink-0" />
-                          <span className="text-blue-600 font-medium text-sm">Entrada</span>
+                          <LogIn size={14} className="flex-shrink-0" style={{ color: '#2563EB' }}/>
+                          <span className="font-medium text-sm" style={{ color: '#2563EB' }}>Entrada</span>
                         </>
                       ) : (
                         <>
-                          <LogOut size={14} className="text-red-600 flex-shrink-0" />
-                          <span className="text-red-600 font-medium text-sm">Salida</span>
+                          <LogOut size={14} className="flex-shrink-0" style={{ color: '#DC2626' }}/>
+                          <span className="font-medium text-sm" style={{ color: '#DC2626' }}>Salida</span>
                         </>
                       )}
                     </div>
@@ -545,10 +568,10 @@ export default function ListadoAsistencias() {
                 </div>
 
                 {/* Fecha y hora */}
-                <div className="border-t border-gray-200 pt-4">
+                <div className="border-t pt-4" style={{ borderColor: themeStyles.textSecondary + '22' }}>
                   <div className="text-center space-y-1">
-                    <div className="font-semibold text-base text-gray-800">{formatDate(a.timestamp)}</div>
-                    <div className="text-gray-500 text-sm">{formatTime(a.timestamp)}</div>
+                    <div className="font-semibold text-base" style={{ color: themeStyles.textPrimary }}>{formatDate(a.timestamp)}</div>
+                    <div className="text-sm" style={{ color: themeStyles.textSecondary }}>{formatTime(a.timestamp)}</div>
                   </div>
                 </div>
               </div>
@@ -560,14 +583,15 @@ export default function ListadoAsistencias() {
       {/* Paginación - Optimizada para móvil y tablet */}
       {asistenciasFiltradas.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 mt-3 sm:mt-4">
-          <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left px-1">
+          <div className="text-xs sm:text-sm text-center sm:text-left px-1" style={{ color: themeStyles.textSecondary }}>
             Mostrando {startIndex + 1} - {Math.min(endIndex, asistenciasFiltradas.length)} de {asistenciasFiltradas.length} registros
           </div>
           <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-2 sm:px-2.5 py-1.5 bg-blue-100 text-blue-800 rounded-md disabled:opacity-50 hover:bg-blue-200 text-xs sm:text-sm"
+              className="px-2 sm:px-2.5 py-1.5 rounded-md disabled:opacity-50 text-xs sm:text-sm transition-colors duration-200"
+              style={{ backgroundColor: themeStyles.secondary + '22', color: themeStyles.secondary, hover: themeStyles.secondary + '33' }}
             >
               <ChevronLeft size={12} />
             </button>
@@ -588,9 +612,14 @@ export default function ListadoAsistencias() {
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`px-2 sm:px-2.5 py-1.5 rounded-md text-xs sm:text-sm ${
-                    currentPage === page ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                  className={`px-2 sm:px-2.5 py-1.5 rounded-md text-xs sm:text-sm transition-colors duration-200 ${
+                    currentPage === page ? "text-white" : ""
                   }`}
+                  style={{
+                    backgroundColor: currentPage === page ? themeStyles.primary : themeStyles.secondary + '22',
+                    color: currentPage === page ? '#FFFFFF' : themeStyles.secondary,
+                    hover: themeStyles.secondary + '33'
+                  }}
                 >
                   {page}
                 </button>
@@ -599,7 +628,8 @@ export default function ListadoAsistencias() {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-2 sm:px-2.5 py-1.5 bg-blue-100 text-blue-800 rounded-md disabled:opacity-50 hover:bg-blue-200 text-xs sm:text-sm"
+              className="px-2 sm:px-2.5 py-1.5 rounded-md disabled:opacity-50 text-xs sm:text-sm transition-colors duration-200"
+              style={{ backgroundColor: themeStyles.secondary + '22', color: themeStyles.secondary, hover: themeStyles.secondary + '33' }}
             >
               <ChevronRight size={12} />
             </button>
@@ -610,10 +640,10 @@ export default function ListadoAsistencias() {
       {/* Mensaje cuando no hay datos */}
       {asistenciasFiltradas.length === 0 && (
         <div className="text-center py-8">
-          <ClipboardCheck size={48} className="mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-600">No hay asistencias para mostrar.</p>
+          <ClipboardCheck size={48} className="mx-auto mb-4" style={{ color: themeStyles.textSecondary + '66' }}/>
+          <p style={{ color: themeStyles.textSecondary }}>No hay asistencias para mostrar.</p>
           {asistencias.length > 0 && (
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm mt-2" style={{ color: themeStyles.textSecondary + 'CC' }}>
               Intenta cambiar los filtros para ver más resultados.
             </p>
           )}

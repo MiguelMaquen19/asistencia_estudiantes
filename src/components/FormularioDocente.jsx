@@ -1,14 +1,29 @@
 import { useState, useEffect } from "react";
 import { collection, addDoc, getDocs, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
-import { UserPlus, X } from "lucide-react";
+import { UserPlus, X, Trash2, Edit } from "lucide-react";
 
-export default function FormularioDocente({ showFormAsModal, onClose, onOpenModal }) {
+export default function FormularioDocente({ 
+  showFormAsModal, 
+  onClose, 
+  onOpenModal, 
+  selectedTheme = 'blue', 
+  themes = {} 
+}) {
   const [dni, setDni] = useState("");
   const [nombre, setNombre] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [cargando, setCargando] = useState(false);
   const [docentes, setDocentes] = useState([]);
+
+  // Use the themes object to get the styles for the selected theme, with a fallback
+  const themeStyles = themes[selectedTheme] || { 
+    primary: '#1E3A8A',
+    secondary: '#3B82F6',
+    background: '#F0F4F8',
+    textPrimary: '#111827',
+    textSecondary: '#4B5563',
+  };
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "docentes"), (snapshot) => {
@@ -76,20 +91,25 @@ export default function FormularioDocente({ showFormAsModal, onClose, onOpenModa
         <form
           onSubmit={registrarDocente}
           className="space-y-6 bg-white p-6 rounded-xl border border-gray-200"
+          style={{ borderColor: themeStyles.textSecondary }}
         >
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-sky-900 flex items-center gap-2">
-              <UserPlus size={22} className="text-sky-700" />
+            <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+              <UserPlus size={22} style={{ color: themeStyles.secondary }} />
               Agregar Docente
             </h2>
             <button
               type="button"
               onClick={onClose}
-              className="text-gray-400 hover:text-red-500"
+              className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
             >
               <X size={20} />
             </button>
           </div>
+
+          {mensaje && (
+            <p className="text-sm text-center italic" style={{ color: themeStyles.textSecondary }}>{mensaje}</p>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <input
@@ -98,68 +118,82 @@ export default function FormularioDocente({ showFormAsModal, onClose, onOpenModa
               value={dni}
               onChange={(e) => setDni(e.target.value.replace(/[^0-9]/g, ''))}
               maxLength={8}
-              className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-sky-500"
+              className="border rounded-md p-2 focus:ring-2 focus:outline-none"
+              style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
             />
             <input
               type="text"
               placeholder="Nombre completo del docente"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-sky-500"
+              className="border rounded-md p-2 focus:ring-2 focus:outline-none"
+              style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
             />
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition"
+              className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
+              style={{ color: themeStyles.textPrimary }}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={cargando}
-              className={`px-4 py-2 rounded-md font-semibold text-white ${
-                cargando ? "bg-sky-400" : "bg-sky-700 hover:bg-sky-800"
-              }`}
+              className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
+              style={{ backgroundColor: cargando ? themeStyles.secondary : themeStyles.primary }}
             >
               {cargando ? "Registrando..." : "Agregar Docente"}
             </button>
           </div>
-
-          {mensaje && (
-            <p className="text-sm text-center mt-2 text-gray-600 italic">{mensaje}</p>
-          )}
         </form>
       ) : (
-        <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-200">
+        <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-200" style={{ borderColor: themeStyles.textSecondary }}>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-sky-900">Docentes Registrados</h3>
+            <h3 className="text-lg font-semibold" style={{ color: themeStyles.primary }}>Docentes Registrados</h3>
             <button
               onClick={onOpenModal}
-              className="flex items-center gap-2 bg-sky-700 text-white px-4 py-2 rounded shadow hover:bg-sky-800 transition"
+              className="flex items-center gap-2 text-white px-4 py-2 rounded shadow transition-all duration-200"
+              style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF', hoverBgColor: themeStyles.secondary }}
             >
               <UserPlus size={20} />
               Agregar Docente
             </button>
           </div>
           {docentes.length === 0 ? (
-            <p className="text-sm text-gray-600 italic">No hay docentes registrados aún.</p>
+            <p className="text-sm italic" style={{ color: themeStyles.textSecondary }}>No hay docentes registrados aún.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-sky-100">
-                    <th className="text-left p-2 text-sm font-semibold text-sky-800 border-b">Nombre</th>
-                    <th className="text-left p-2 text-sm font-semibold text-sky-800 border-b">DNI</th>
+                  <tr style={{ backgroundColor: themeStyles.secondary }}>
+                    <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>Nombre</th>
+                    <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>DNI</th>
+                    <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {docentes.map((docente) => (
-                    <tr key={docente.id} className="bg-gray-50 hover:bg-gray-100 border-b">
-                      <td className="p-2 text-sm text-sky-800">{docente.nombre}</td>
-                      <td className="p-2 text-sm text-sky-800">{docente.dni}</td>
+                    <tr key={docente.id} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: themeStyles.textSecondary }}>
+                      <td className="p-2 text-sm" style={{ color: themeStyles.textPrimary }}>{docente.nombre}</td>
+                      <td className="p-2 text-sm" style={{ color: themeStyles.textPrimary }}>{docente.dni}</td>
+                      <td className="p-2 text-sm flex gap-2">
+                        <button
+                          className="p-1 rounded-full text-gray-500 hover:text-green-600 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="p-1 rounded-full text-gray-500 hover:text-red-600 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

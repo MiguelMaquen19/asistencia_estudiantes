@@ -27,7 +27,46 @@ import {
 } from "lucide-react";
 import BarcodeScanner from "react-qr-barcode-scanner";
 
-export default function MarcarAsistencia({ esDocente }) {
+// Definir los temas (mismo objeto que en App.tsx)
+const themes = {
+  blue: {
+    primary: '#1E3A8A',
+    secondary: '#3B82F6',
+    background: '#F0F4F8',
+    textPrimary: '#111827',
+    textSecondary: '#4B5563',
+  },
+  gray: {
+    primary: '#4B5563',
+    secondary: '#6B7280',
+    background: '#F3F4F6',
+    textPrimary: '#111827',
+    textSecondary: '#6B7280',
+  },
+  green: {
+    primary: '#065F46',
+    secondary: '#34D399',
+    background: '#ECFDF5',
+    textPrimary: '#111827',
+    textSecondary: '#064E3B',
+  },
+  purple: {
+    primary: '#5B21B6',
+    secondary: '#8B5CF6',
+    background: '#F5F3FF',
+    textPrimary: '#111827',
+    textSecondary: '#6D28D9',
+  },
+  indigo: {
+    primary: '#312E81',
+    secondary: '#6366F1',
+    background: '#EEF2FF',
+    textPrimary: '#111827',
+    textSecondary: '#4F46E5',
+  },
+};
+
+export default function MarcarAsistencia({ esDocente, theme }) {
   const [estudiantes, setEstudiantes] = useState([]);
   const [asistencias, setAsistencias] = useState([]);
   const [busqueda, setBusqueda] = useState("");
@@ -37,28 +76,23 @@ export default function MarcarAsistencia({ esDocente }) {
   const [modal, setModal] = useState({ show: false, mensaje: "", nombre: "", accion: "" });
   const [ultimoScanPorCodigo, setUltimoScanPorCodigo] = useState({});
   const [ultimoError, setUltimoError] = useState(0);
-
-  // Estados para funciones de docente
   const [estudiantesSeleccionados, setEstudiantesSeleccionados] = useState([]);
   const [cargandoMasivo, setCargandoMasivo] = useState(false);
-
-  // Estado para el modal de historial
   const [modalHistorial, setModalHistorial] = useState({ show: false, estudiante: null });
-
-  // New state to trigger re-renders for real-time updates
   const [currentTime, setCurrentTime] = useState(Date.now());
 
-  const TIEMPO_LIMITE_MISMO_USUARIO = 30000; // 30 segundos para el mismo código
+  const TIEMPO_LIMITE_MISMO_USUARIO = 30000;
   const ERROR_DEBOUNCE = 5000;
 
-  // Update currentTime every second to trigger re-renders (only when in "asistencia" view for optimization)
+  // Estilos del tema
+  const themeStyles = themes[theme] || themes.blue;
+
   useEffect(() => {
     if (vista === "asistencia") {
       const interval = setInterval(() => {
         setCurrentTime(Date.now());
-      }, 1000); // Update every 1 second
-
-      return () => clearInterval(interval); // Cleanup interval on component unmount or view change
+      }, 1000);
+      return () => clearInterval(interval);
     }
   }, [vista]);
 
@@ -84,38 +118,31 @@ export default function MarcarAsistencia({ esDocente }) {
     setTimeout(() => setModal({ show: false, mensaje: "", nombre: "", accion: "" }), 4000);
   };
 
-  // Función para obtener la última acción de un estudiante en la sesión actual
   const obtenerUltimaAccionEnSesion = (codigo, sesion) => {
     const registrosEnSesion = asistencias
       .filter((a) => a.codigo === codigo && a.sesion === sesion)
       .sort((a, b) => {
         const ta = a.timestamp?.toDate?.() || new Date(a.timestamp || 0);
         const tb = b.timestamp?.toDate?.() || new Date(b.timestamp || 0);
-        return tb - ta; // ORDEN DESCENDENTE - más reciente primero
+        return tb - ta;
       });
-    
     return registrosEnSesion[0]?.accion || null;
   };
 
-  // Función para verificar si un estudiante está presente (dentro del aula)
   const estaPresente = (codigo) => {
     const ultimaAccion = obtenerUltimaAccionEnSesion(codigo, sesionSeleccionada);
     return ultimaAccion === "entrada";
   };
 
-  // Función para obtener estudiantes actualmente presentes
   const obtenerEstudiantesPresentes = () => {
     return estudiantesFiltrados.filter((e) => estaPresente(e.codigo));
   };
 
-  // Función general para formatear duración en milisegundos
   const formatDuration = (millis) => {
     if (millis <= 0) return "0s";
-    
     const segundos = Math.floor((millis / 1000) % 60);
     const minutos = Math.floor((millis / (1000 * 60)) % 60);
     const horas = Math.floor(millis / (1000 * 60 * 60));
-    
     if (horas > 0) {
       return `${horas}h ${minutos}m ${segundos}s`;
     } else if (minutos > 0) {
@@ -125,7 +152,6 @@ export default function MarcarAsistencia({ esDocente }) {
     }
   };
 
-  // Función para obtener todas las sesiones de asistencia de un estudiante
   const getAllAsistenciaSessions = (estudiante) => {
     const acciones = asistenciasFiltradas
       .filter((a) => a.codigo === estudiante.codigo)
@@ -133,7 +159,7 @@ export default function MarcarAsistencia({ esDocente }) {
         ...a,
         date: a.timestamp?.toDate?.() || new Date(a.timestamp || 0)
       }))
-      .sort((a, b) => a.date - b.date); // Orden ascendente por fecha para procesamiento
+      .sort((a, b) => a.date - b.date);
 
     const sessions = [];
     let i = 0;
@@ -141,7 +167,6 @@ export default function MarcarAsistencia({ esDocente }) {
       if (acciones[i].accion === "entrada") {
         const entry = acciones[i];
         let exit = null;
-        // Buscar la salida más cercana después de esta entrada
         for (let j = i + 1; j < acciones.length; j++) {
           if (acciones[j].accion === "salida" && acciones[j].date > entry.date) {
             exit = acciones[j];
@@ -150,7 +175,7 @@ export default function MarcarAsistencia({ esDocente }) {
           }
         }
         if (!exit) {
-          i++; // Si no hay salida, avanzar
+          i++;
         }
         const durationMillis = exit 
           ? exit.date.getTime() - entry.date.getTime()
@@ -158,30 +183,22 @@ export default function MarcarAsistencia({ esDocente }) {
         const duration = formatDuration(durationMillis);
         sessions.push({ entry, exit, duration, isOpen: !exit });
       } else {
-        // Salida huérfana, ignorar
         i++;
       }
     }
-
-    // ORDENAR SESIONES POR FECHA DESCENDENTE (más reciente primero)
     sessions.sort((a, b) => b.entry.date.getTime() - a.entry.date.getTime());
-
-    // Calcular total en milisegundos
     const totalMillis = sessions.reduce((sum, s) => {
       const entryTime = s.entry.date.getTime();
       const endTime = s.exit ? s.exit.date.getTime() : currentTime;
       return sum + (endTime - entryTime);
     }, 0);
-
     const totalTime = formatDuration(totalMillis);
-
     return { sessions, totalTime };
   };
 
   const marcarEntrada = async (persona) => {
     try {
       setCargando(true);
-      
       await addDoc(collection(db, "asistencias"), {
         nombre: persona.nombre,
         codigo: persona.codigo,
@@ -192,7 +209,6 @@ export default function MarcarAsistencia({ esDocente }) {
         sesion: sesionSeleccionada,
         timestamp: serverTimestamp()
       });
-      
       mostrarMensaje(`Entrada registrada en sesión ${sesionSeleccionada}`, persona.nombre, "entrada");
     } catch (err) {
       console.error(err);
@@ -205,7 +221,6 @@ export default function MarcarAsistencia({ esDocente }) {
   const marcarSalida = async (persona) => {
     try {
       setCargando(true);
-      
       await addDoc(collection(db, "asistencias"), {
         nombre: persona.nombre,
         codigo: persona.codigo,
@@ -216,7 +231,6 @@ export default function MarcarAsistencia({ esDocente }) {
         sesion: sesionSeleccionada,
         timestamp: serverTimestamp()
       });
-      
       mostrarMensaje(`Salida registrada en sesión ${sesionSeleccionada}`, persona.nombre, "salida");
     } catch (err) {
       console.error(err);
@@ -226,7 +240,6 @@ export default function MarcarAsistencia({ esDocente }) {
     }
   };
 
-  // Funciones para docentes - Selección múltiple
   const toggleSeleccion = (estudianteId) => {
     setEstudiantesSeleccionados(prev => 
       prev.includes(estudianteId) 
@@ -252,7 +265,6 @@ export default function MarcarAsistencia({ esDocente }) {
       const estudiantesAMarcar = estudiantes.filter(e => 
         estudiantesSeleccionados.includes(e.id)
       );
-      
       const promesas = estudiantesAMarcar.map(estudiante =>
         addDoc(collection(db, "asistencias"), {
           nombre: estudiante.nombre,
@@ -265,9 +277,7 @@ export default function MarcarAsistencia({ esDocente }) {
           timestamp: serverTimestamp()
         })
       );
-
       await Promise.all(promesas);
-      
       mostrarMensaje(`✅ Entrada registrada para ${estudiantesAMarcar.length} estudiantes en sesión ${sesionSeleccionada}`);
       setEstudiantesSeleccionados([]);
     } catch (err) {
@@ -284,7 +294,6 @@ export default function MarcarAsistencia({ esDocente }) {
       const estudiantesAMarcar = estudiantes.filter(e => 
         estudiantesSeleccionados.includes(e.id)
       );
-
       const promesas = estudiantesAMarcar.map(estudiante =>
         addDoc(collection(db, "asistencias"), {
           nombre: estudiante.nombre,
@@ -297,9 +306,7 @@ export default function MarcarAsistencia({ esDocente }) {
           timestamp: serverTimestamp()
         })
       );
-
       await Promise.all(promesas);
-      
       mostrarMensaje(`✅ Salida registrada para ${estudiantesAMarcar.length} estudiantes en sesión ${sesionSeleccionada}`);
       setEstudiantesSeleccionados([]);
     } catch (err) {
@@ -310,33 +317,24 @@ export default function MarcarAsistencia({ esDocente }) {
     }
   };
 
-  // Función para determinar qué botón mostrar basado en la última acción
   const obtenerProximaAccion = (codigo) => {
     const ultimaAccion = obtenerUltimaAccionEnSesion(codigo, sesionSeleccionada);
     return ultimaAccion === "entrada" ? "salida" : "entrada";
   };
 
-  // Función para calcular el tiempo de permanencia (actualizada para usar formatDuration)
   const calcularTiempoPermanencia = (entrada, salida) => {
     if (!entrada || !salida) return "-";
-    
     const fechaEntrada = entrada.timestamp?.toDate?.() || new Date(entrada.timestamp || 0);
     const fechaSalida = salida.timestamp?.toDate?.() || new Date(salida.timestamp || 0);
-    
     const diferencia = fechaSalida.getTime() - fechaEntrada.getTime();
-    
     return formatDuration(diferencia);
   };
 
-  // Función para calcular tiempo transcurrido desde la entrada (para estudiantes presentes) (actualizada)
   const calcularTiempoEnAula = (entrada) => {
     if (!entrada) return "-";
-    
     const fechaEntrada = entrada.timestamp?.toDate?.() || new Date(entrada.timestamp || 0);
-    const ahora = new Date(currentTime); // Use currentTime state for real-time updates
-    
+    const ahora = new Date(currentTime);
     const diferencia = ahora.getTime() - fechaEntrada.getTime();
-    
     return formatDuration(diferencia);
   };
 
@@ -346,12 +344,10 @@ export default function MarcarAsistencia({ esDocente }) {
     return d.toLocaleString();
   };
 
-  // Función para abrir el modal de historial
   const abrirHistorial = (estudiante) => {
     setModalHistorial({ show: true, estudiante });
   };
 
-  // Función para cerrar el modal de historial
   const cerrarHistorial = () => {
     setModalHistorial({ show: false, estudiante: null });
   };
@@ -360,7 +356,6 @@ export default function MarcarAsistencia({ esDocente }) {
     if (!!result) {
       console.log("🔍 QR detectado:", result.text);
       const ahora = Date.now();
-      
       let codigoEscaneado = result.text;
       if (result.text.includes('{')) {
         try {
@@ -373,23 +368,17 @@ export default function MarcarAsistencia({ esDocente }) {
           return;
         }
       }
-
-      // Verificar límite de tiempo para el mismo código
       const ultimoScanEsteCodigo = ultimoScanPorCodigo[codigoEscaneado] || 0;
       if (ahora - ultimoScanEsteCodigo < TIEMPO_LIMITE_MISMO_USUARIO) {
         console.log(`⏱️ Escaneo del mismo código (${codigoEscaneado}) dentro de los 30 segundos, ignorando...`);
-        return; // No mostrar mensaje, simplemente ignorar
+        return;
       }
-
-      // Actualizar el tiempo del último scan para este código específico
       setUltimoScanPorCodigo(prev => ({
         ...prev,
         [codigoEscaneado]: ahora
       }));
-
       const estudiante = estudiantes.find((e) => e.codigo === codigoEscaneado);
       console.log("👤 Estudiante encontrado:", estudiante);
-      
       if (estudiante) {
         const proximaAccion = obtenerProximaAccion(estudiante.codigo);
         if (proximaAccion === "entrada") {
@@ -401,7 +390,6 @@ export default function MarcarAsistencia({ esDocente }) {
         mostrarMensaje(`Estudiante no encontrado para código: ${codigoEscaneado}`);
       }
     }
-    
     if (!!err) {
       if (err.name === 'NotFoundException' || 
           (err.message && err.message.includes('No MultiFormat Readers'))) {
@@ -416,7 +404,6 @@ export default function MarcarAsistencia({ esDocente }) {
     }
   };
 
-  // Memoized filtered students for lista view
   const estudiantesFiltrados = useMemo(() => 
     estudiantes.filter((e) => 
       e.nombre.toLowerCase().includes(busqueda.toLowerCase())
@@ -424,22 +411,18 @@ export default function MarcarAsistencia({ esDocente }) {
     [estudiantes, busqueda]
   );
 
-  // Filtrar asistencias por sesión seleccionada
   const asistenciasFiltradas = useMemo(() => 
     asistencias.filter(a => a.sesion === sesionSeleccionada),
     [asistencias, sesionSeleccionada]
   );
 
-  // Verificar si hay asistencias para la sesión seleccionada
   const hayAsistenciasEnSesion = asistenciasFiltradas.length > 0;
 
-  // Para vista asistencia - estudiantes con registros en la sesión
   const estudiantesConAsistencia = useMemo(() => {
     const codigosUnicos = new Set(asistenciasFiltradas.map(a => a.codigo));
     return estudiantes.filter(e => codigosUnicos.has(e.codigo)).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [estudiantes, asistenciasFiltradas]);
 
-  // Filtrados por búsqueda para asistencia (solo para docente)
   const estudiantesAsistenciaFiltrados = useMemo(() => 
     estudiantesConAsistencia.filter((e) => 
       e.nombre.toLowerCase().includes(busqueda.toLowerCase())
@@ -447,24 +430,23 @@ export default function MarcarAsistencia({ esDocente }) {
     [estudiantesConAsistencia, busqueda]
   );
 
-  // Presentes filtrados para indicador
   const presentesFiltrados = useMemo(() => 
     estudiantesAsistenciaFiltrados.filter(e => estaPresente(e.codigo)),
     [estudiantesAsistenciaFiltrados]
   );
 
   return (
-    <div className={`bg-blue-50 p-4 sm:p-6 rounded-xl shadow-md border border-blue-200 mb-6 w-full ${!esDocente ? 'mx-auto max-w-5xl' : 'ml-0'}`}>
+    <div className="p-4 sm:p-6 rounded-xl shadow-md border w-full" style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary, marginLeft: esDocente ? '0' : 'auto', maxWidth: esDocente ? 'none' : '80rem' }}>
       {/* Header con información del modo */}
-      <div className="mb-4 p-3 bg-blue-100 rounded-lg border border-blue-300">
+      <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: `${themeStyles.primary}20`, borderColor: themeStyles.textSecondary }}>
         <div className="flex items-center gap-2">
-          <UserCheck size={20} className={esDocente ? "text-green-600" : "text-sky-600"} />
-          <span className="font-medium text-gray-700">
+          <UserCheck size={20} style={{ color: esDocente ? '#059669' : themeStyles.primary }} />
+          <span className="font-medium" style={{ color: themeStyles.textPrimary }}>
             {esDocente ? "Modo Docente - Control de Asistencia" : "Registro de Asistencia"}
           </span>
         </div>
         {esDocente && (
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-xs mt-1" style={{ color: themeStyles.textSecondary }}>
             Puedes seleccionar múltiples estudiantes y marcar asistencia masiva
           </p>
         )}
@@ -472,14 +454,15 @@ export default function MarcarAsistencia({ esDocente }) {
 
       {/* Combobox para seleccionar sesión */}
       <div className="mb-6">
-        <label htmlFor="sesion" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="sesion" className="block text-sm font-medium mb-2" style={{ color: themeStyles.textPrimary }}>
           Seleccionar Sesión
         </label>
         <select
           id="sesion"
           value={sesionSeleccionada}
           onChange={(e) => setSesionSeleccionada(e.target.value)}
-          className="w-full border border-blue-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50"
+          className="w-full border rounded-md p-2 focus:outline-none focus:ring-2"
+          style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, focusRingColor: themeStyles.secondary }}
         >
           {Array.from({ length: 12 }, (_, i) => i + 1).map((num) => (
             <option key={num} value={num.toString()}>
@@ -496,9 +479,14 @@ export default function MarcarAsistencia({ esDocente }) {
             onClick={() => setVista("lista")}
             className={`flex items-center gap-2 px-4 py-2 rounded-md shadow-sm border ${
               vista === "lista"
-                ? "bg-blue-200 border-blue-400 text-sky-800"
-                : "bg-blue-50 border-blue-300 text-gray-700 hover:bg-blue-100"
+                ? "text-white"
+                : "hover:bg-opacity-10"
             }`}
+            style={{
+              backgroundColor: vista === "lista" ? themeStyles.secondary : themeStyles.background,
+              borderColor: themeStyles.textSecondary,
+              color: vista === "lista" ? '#FFFFFF' : themeStyles.textPrimary,
+            }}
           >
             <List size={18} />
             Lista
@@ -507,9 +495,14 @@ export default function MarcarAsistencia({ esDocente }) {
             onClick={() => setVista("asistencia")}
             className={`flex items-center gap-2 px-4 py-2 rounded-md shadow-sm border ${
               vista === "asistencia"
-                ? "bg-blue-200 border-blue-400 text-sky-800"
-                : "bg-blue-50 border-blue-300 text-gray-700 hover:bg-blue-100"
+                ? "text-white"
+                : "hover:bg-opacity-10"
             }`}
+            style={{
+              backgroundColor: vista === "asistencia" ? themeStyles.secondary : themeStyles.background,
+              borderColor: themeStyles.textSecondary,
+              color: vista === "asistencia" ? '#FFFFFF' : themeStyles.textPrimary,
+            }}
           >
             <Search size={18} />
             {esDocente ? "Control Asistencia" : "Presentes en Aula"}
@@ -518,9 +511,14 @@ export default function MarcarAsistencia({ esDocente }) {
             onClick={() => setVista("escaner")}
             className={`flex items-center gap-2 px-4 py-2 rounded-md shadow-sm border ${
               vista === "escaner"
-                ? "bg-blue-200 border-blue-400 text-sky-800"
-                : "bg-blue-50 border-blue-300 text-gray-700 hover:bg-blue-100"
+                ? "text-white"
+                : "hover:bg-opacity-10"
             }`}
+            style={{
+              backgroundColor: vista === "escaner" ? themeStyles.secondary : themeStyles.background,
+              borderColor: themeStyles.textSecondary,
+              color: vista === "escaner" ? '#FFFFFF' : themeStyles.textPrimary,
+            }}
           >
             <Camera size={18} />
             Escáner QR
@@ -533,16 +531,18 @@ export default function MarcarAsistencia({ esDocente }) {
         placeholder="Buscar por nombre..."
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
-        className="w-full border border-blue-300 rounded-md p-2 mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50"
+        className="w-full border rounded-md p-2 mb-6 focus:outline-none focus:ring-2"
+        style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, focusRingColor: themeStyles.secondary }}
       />
 
       {/* Controles para docentes */}
       {esDocente && vista === "lista" && (
-        <div className="mb-4 p-4 bg-blue-100 border border-blue-300 rounded-lg">
+        <div className="mb-4 p-4 rounded-lg border" style={{ backgroundColor: `${themeStyles.primary}20`, borderColor: themeStyles.textSecondary }}>
           <div className="flex flex-wrap gap-3 items-center">
             <button
               onClick={seleccionarTodos}
-              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+              className="flex items-center gap-2 px-3 py-2 rounded-md text-sm"
+              style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}
             >
               {estudiantesSeleccionados.length === estudiantesFiltrados.length ? (
                 <CheckSquare size={16} />
@@ -551,16 +551,16 @@ export default function MarcarAsistencia({ esDocente }) {
               )}
               {estudiantesSeleccionados.length === estudiantesFiltrados.length ? "Deseleccionar todos" : "Seleccionar todos"}
             </button>
-            
             {estudiantesSeleccionados.length > 0 && (
               <>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm" style={{ color: themeStyles.textSecondary }}>
                   {estudiantesSeleccionados.length} seleccionados
                 </span>
                 <button
                   onClick={marcarEntradaMasiva}
                   disabled={cargandoMasivo}
-                  className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50"
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm disabled:opacity-50"
+                  style={{ backgroundColor: '#059669', color: '#FFFFFF' }}
                 >
                   <LogIn size={16} />
                   Marcar Entrada
@@ -568,7 +568,8 @@ export default function MarcarAsistencia({ esDocente }) {
                 <button
                   onClick={marcarSalidaMasiva}
                   disabled={cargandoMasivo}
-                  className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 disabled:opacity-50"
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm disabled:opacity-50"
+                  style={{ backgroundColor: '#DC2626', color: '#FFFFFF' }}
                 >
                   <LogOut size={16} />
                   Marcar Salida
@@ -582,74 +583,74 @@ export default function MarcarAsistencia({ esDocente }) {
       {vista === "lista" && (
         <ul className="space-y-2">
           {estudiantesFiltrados.map((e) => {
-              const proximaAccion = obtenerProximaAccion(e.codigo);
-
-              return (
-                <li
-                  key={e.id}
-                  className="flex flex-col sm:flex-row items-center justify-between bg-blue-50 p-3 rounded-md border border-blue-200 shadow-sm"
-                >
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    {esDocente && (
-                      <button
-                        onClick={() => toggleSeleccion(e.id)}
-                        className="text-sky-600 hover:text-sky-800"
-                      >
-                        {estudiantesSeleccionados.includes(e.id) ? (
-                          <CheckSquare size={20} />
-                        ) : (
-                          <Square size={20} />
-                        )}
-                      </button>
-                    )}
-                    
-                    {e.tipo === "externo" ? (
-                      <Users size={20} className="text-gray-600" />
-                    ) : (
-                      <GraduationCap size={20} className="text-sky-700" />
-                    )}
-                    <div>
-                      <p className="font-semibold text-sky-800">{e.nombre}</p>
-                      <p className="text-xs text-gray-600">
-                        {e.codigo} • {e.tipo === "externo" ? "Externo" : "Alumno USS"}
-                      </p>
-                    </div>
+            const proximaAccion = obtenerProximaAccion(e.codigo);
+            return (
+              <li
+                key={e.id}
+                className="flex flex-col sm:flex-row items-center justify-between p-3 rounded-md border shadow-sm"
+                style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}
+              >
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  {esDocente && (
+                    <button
+                      onClick={() => toggleSeleccion(e.id)}
+                      className="hover:text-opacity-80"
+                      style={{ color: themeStyles.primary }}
+                    >
+                      {estudiantesSeleccionados.includes(e.id) ? (
+                        <CheckSquare size={20} />
+                      ) : (
+                        <Square size={20} />
+                      )}
+                    </button>
+                  )}
+                  {e.tipo === "externo" ? (
+                    <Users size={20} style={{ color: themeStyles.textSecondary }} />
+                  ) : (
+                    <GraduationCap size={20} style={{ color: themeStyles.primary }} />
+                  )}
+                  <div>
+                    <p className="font-semibold" style={{ color: themeStyles.textPrimary }}>{e.nombre}</p>
+                    <p className="text-xs" style={{ color: themeStyles.textSecondary }}>
+                      {e.codigo} • {e.tipo === "externo" ? "Externo" : "Alumno USS"}
+                    </p>
                   </div>
-
-                  <div className="mt-2 sm:mt-0">
-                    {proximaAccion === "entrada" ? (
-                      <button
-                        onClick={() => marcarEntrada(e)}
-                        disabled={cargando}
-                        className="bg-sky-700 text-white px-3 py-1 rounded-md text-sm hover:bg-sky-800 disabled:opacity-50 flex items-center gap-1"
-                      >
-                        <LogIn size={14} />
-                        Entrada
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => marcarSalida(e)}
-                        disabled={cargando}
-                        className="bg-red-600 text-white px-3 py-1 rounded-md text-sm hover:bg-red-700 disabled:opacity-50 flex items-center gap-1"
-                      >
-                        <LogOut size={14} />
-                        Salida
-                      </button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
+                </div>
+                <div className="mt-2 sm:mt-0">
+                  {proximaAccion === "entrada" ? (
+                    <button
+                      onClick={() => marcarEntrada(e)}
+                      disabled={cargando}
+                      className="px-3 py-1 rounded-md text-sm flex items-center gap-1 disabled:opacity-50"
+                      style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}
+                    >
+                      <LogIn size={14} />
+                      Entrada
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => marcarSalida(e)}
+                      disabled={cargando}
+                      className="px-3 py-1 rounded-md text-sm flex items-center gap-1 disabled:opacity-50"
+                      style={{ backgroundColor: '#DC2626', color: '#FFFFFF' }}
+                    >
+                      <LogOut size={14} />
+                      Salida
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 
       {vista === "asistencia" && (
         <>
-          {/* Indicador */}
-          <div className={`mb-4 p-3 rounded-lg border ${esDocente ? 'bg-blue-100 border-blue-300' : 'bg-green-100 border-green-300'}`}>
+          <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: esDocente ? `${themeStyles.primary}20` : '#DCFCE7', borderColor: esDocente ? themeStyles.textSecondary : '#BBF7D0' }}>
             <div className="flex items-center gap-2">
-              <Users size={18} className={esDocente ? "text-blue-600" : "text-green-600"} />
-              <span className={`font-medium ${esDocente ? 'text-blue-800' : 'text-green-800'}`}>
+              <Users size={18} style={{ color: esDocente ? themeStyles.primary : '#059669' }} />
+              <span className="font-medium" style={{ color: esDocente ? themeStyles.textPrimary : '#065F46' }}>
                 {esDocente 
                   ? `Control Sesión ${sesionSeleccionada}: ${estudiantesAsistenciaFiltrados.length} estudiantes (${presentesFiltrados.length} presentes)`
                   : `Estudiantes presentes en aula: ${obtenerEstudiantesPresentes().length}`
@@ -659,10 +660,9 @@ export default function MarcarAsistencia({ esDocente }) {
           </div>
 
           {esDocente ? (
-            // Vista para docente: Lista con último registro y botón "Ver más"
             <div className="space-y-4">
               {estudiantesAsistenciaFiltrados.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8" style={{ color: themeStyles.textSecondary }}>
                   {hayAsistenciasEnSesion 
                     ? "No hay estudiantes con registros en esta sesión."
                     : `No hay registros de asistencia para la sesión ${sesionSeleccionada}.`
@@ -672,20 +672,17 @@ export default function MarcarAsistencia({ esDocente }) {
                 estudiantesAsistenciaFiltrados.map((estudiante) => {
                   const { sessions, totalTime } = getAllAsistenciaSessions(estudiante);
                   const isPresent = sessions.length > 0 && sessions[sessions.length - 1].isOpen;
-                  const headerBgClass = isPresent ? 'bg-green-100' : 'bg-red-100';
+                  const headerBgClass = isPresent ? '#DCFCE7' : '#FEE2E2';
                   const dotClass = isPresent ? 'bg-green-500 animate-pulse' : 'bg-red-500';
-                  
-                  // Mostrar solo la sesión más reciente (primera en el array porque está ordenado descendente)
                   const ultimaSesion = sessions[0];
 
                   return (
-                    <div key={estudiante.id} className="bg-white rounded-lg border border-blue-200 shadow-sm overflow-hidden">
-                      {/* Header del estudiante */}
-                      <div className={`${headerBgClass} px-4 py-3 border-b border-blue-200`}>
+                    <div key={estudiante.id} className="rounded-lg border shadow-sm overflow-hidden" style={{ borderColor: themeStyles.textSecondary }}>
+                      <div className={`px-4 py-3 border-b`} style={{ backgroundColor: headerBgClass, borderColor: themeStyles.textSecondary }}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${dotClass}`}></div>
-                            <h3 className="text-sm font-semibold text-gray-800">{estudiante.nombre}</h3>
+                            <h3 className="text-sm font-semibold" style={{ color: themeStyles.textPrimary }}>{estudiante.nombre}</h3>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -697,7 +694,8 @@ export default function MarcarAsistencia({ esDocente }) {
                             {sessions.length > 1 && (
                               <button
                                 onClick={() => abrirHistorial(estudiante)}
-                                className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+                                className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-opacity-90 transition-colors"
+                                style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}
                               >
                                 <Eye size={12} />
                                 Ver más
@@ -706,19 +704,17 @@ export default function MarcarAsistencia({ esDocente }) {
                           </div>
                         </div>
                       </div>
-                      
-                      {/* Último registro */}
                       {ultimaSesion ? (
                         <div className="px-4 py-3">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-600">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style={{ color: themeStyles.textSecondary }}>
                             <span><strong>Entrada:</strong> {formatDate(ultimaSesion.entry.timestamp)}</span>
                             {ultimaSesion.exit ? (
                               <>
                                 <span><strong>Salida:</strong> {formatDate(ultimaSesion.exit.timestamp)}</span>
-                                <span className="font-medium text-blue-600">{ultimaSesion.duration}</span>
+                                <span className="font-medium" style={{ color: themeStyles.primary }}>{ultimaSesion.duration}</span>
                               </>
                             ) : (
-                              <span className="font-medium text-green-600">
+                              <span className="font-medium" style={{ color: '#059669' }}>
                                 <Clock size={12} className="inline mr-1" />
                                 En curso: {ultimaSesion.duration}
                               </span>
@@ -726,14 +722,12 @@ export default function MarcarAsistencia({ esDocente }) {
                           </div>
                         </div>
                       ) : (
-                        <p className="px-4 py-3 text-sm text-gray-500 text-center">Sin registros de asistencia</p>
+                        <p className="px-4 py-3 text-sm text-center" style={{ color: themeStyles.textSecondary }}>Sin registros de asistencia</p>
                       )}
-                      
-                      {/* Total */}
-                      <div className="bg-gray-50 px-4 py-2 border-t border-blue-200">
+                      <div className="px-4 py-2 border-t" style={{ backgroundColor: `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
                         <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600 font-medium">Tiempo total en aula:</span>
-                          <span className="text-blue-600 font-semibold">
+                          <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Tiempo total en aula:</span>
+                          <span className="font-semibold" style={{ color: themeStyles.primary }}>
                             <Clock size={14} className="inline mr-1" />
                             {totalTime}
                           </span>
@@ -745,24 +739,22 @@ export default function MarcarAsistencia({ esDocente }) {
               )}
             </div>
           ) : (
-            // Vista para no docente: Tabla de presentes
             <div className="overflow-x-auto">
-              <table className="min-w-full table-auto border border-blue-200 rounded-md shadow-sm">
-                <thead className="bg-blue-100 text-sky-800 text-left">
+              <table className="min-w-full table-auto border rounded-md shadow-sm" style={{ borderColor: themeStyles.textSecondary }}>
+                <thead className="text-left" style={{ backgroundColor: `${themeStyles.primary}20`, color: themeStyles.textPrimary }}>
                   <tr>
-                    <th className="px-4 py-2 border-r border-blue-300">Nombre</th>
-                    <th className="px-4 py-2 border-r border-blue-300">Hora de Entrada</th>
-                    <th className="px-4 py-2 border-r border-blue-300">Estado</th>
+                    <th className="px-4 py-2 border-r" style={{ borderColor: themeStyles.textSecondary }}>Nombre</th>
+                    <th className="px-4 py-2 border-r" style={{ borderColor: themeStyles.textSecondary }}>Hora de Entrada</th>
+                    <th className="px-4 py-2 border-r" style={{ borderColor: themeStyles.textSecondary }}>Estado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
                     const estudiantesPresentes = obtenerEstudiantesPresentes();
-                    
                     if (estudiantesPresentes.length === 0) {
                       return (
                         <tr>
-                          <td colSpan="3" className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan="3" className="px-4 py-8 text-center" style={{ color: themeStyles.textSecondary }}>
                             {hayAsistenciasEnSesion 
                               ? "No hay estudiantes presentes en el aula actualmente."
                               : `No hay registros de asistencia para la sesión ${sesionSeleccionada}.`
@@ -771,30 +763,27 @@ export default function MarcarAsistencia({ esDocente }) {
                         </tr>
                       );
                     }
-
                     return estudiantesPresentes.map((estudiante) => {
-                      // Obtener la última entrada (sin salida posterior)
                       const ultimaEntrada = asistenciasFiltradas
                         .filter((a) => a.codigo === estudiante.codigo && a.accion === "entrada")
                         .sort((a, b) => {
                           const ta = a.timestamp?.toDate?.() || new Date(a.timestamp || 0);
                           const tb = b.timestamp?.toDate?.() || new Date(b.timestamp || 0);
-                          return tb - ta; // Más reciente primero
+                          return tb - ta;
                         })[0];
-
                       return (
-                        <tr key={estudiante.id} className="border-t border-blue-200 bg-green-50">
-                          <td className="px-4 py-2 text-sm font-semibold text-gray-800 border-r border-blue-300">
+                        <tr key={estudiante.id} className="border-t" style={{ backgroundColor: '#DCFCE7', borderColor: themeStyles.textSecondary }}>
+                          <td className="px-4 py-2 text-sm font-semibold border-r" style={{ color: themeStyles.textPrimary, borderColor: themeStyles.textSecondary }}>
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                               {estudiante.nombre}
                             </div>
                           </td>
-                          <td className="px-4 py-2 text-sm text-gray-700 border-r border-blue-300">
+                          <td className="px-4 py-2 text-sm border-r" style={{ color: themeStyles.textSecondary, borderColor: themeStyles.textSecondary }}>
                             {ultimaEntrada ? formatDate(ultimaEntrada.timestamp) : "-"}
                           </td>
-                          <td className="px-4 py-2 text-sm border-r border-blue-300">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-200 text-green-800 rounded-full text-xs font-medium">
+                          <td className="px-4 py-2 text-sm border-r" style={{ borderColor: themeStyles.textSecondary }}>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-200 text-green-800">
                               <CheckCircle size={12} />
                               Presente
                             </span>
@@ -812,11 +801,11 @@ export default function MarcarAsistencia({ esDocente }) {
 
       {vista === "escaner" && (
         <div className="flex flex-col items-center space-y-4 w-full">
-          <h3 className="text-lg font-semibold text-sky-800">Escanea el Código QR para Registrar</h3>
-          <p className="text-sm text-gray-600 text-center">
+          <h3 className="text-lg font-semibold" style={{ color: themeStyles.textPrimary }}>Escanea el Código QR para Registrar</h3>
+          <p className="text-sm text-center" style={{ color: themeStyles.textSecondary }}>
             Enfoca la cámara en el QR del estudiante. Se registrará entrada o salida automáticamente para la sesión {sesionSeleccionada}.
           </p>
-          <div className="w-full max-w-md border border-blue-300 rounded-md overflow-hidden shadow-md">
+          <div className="w-full max-w-md border rounded-md overflow-hidden shadow-md" style={{ borderColor: themeStyles.textSecondary }}>
             <BarcodeScanner
               width={500}
               height={400}
@@ -828,10 +817,9 @@ export default function MarcarAsistencia({ esDocente }) {
         </div>
       )}
 
-      {/* Modal para mensajes */}
       {modal.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-blue-50 p-6 rounded-lg shadow-xl max-w-sm w-full sm:w-80 border border-blue-300">
+          <div className="p-6 rounded-lg shadow-xl max-w-sm w-full sm:w-80 border" style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}>
             <div className="flex flex-col items-center gap-4">
               <CheckCircle 
                 size={48} 
@@ -843,12 +831,12 @@ export default function MarcarAsistencia({ esDocente }) {
                       : "text-green-500 animate-pulse"
                 }`} 
               />
-              <p className="text-lg font-semibold text-gray-800 text-center">
+              <p className="text-lg font-semibold text-center" style={{ color: themeStyles.textPrimary }}>
                 {modal.mensaje.includes("Error") || modal.mensaje.includes("invalido")
                   ? modal.mensaje
                   : `${modal.accion.charAt(0).toUpperCase() + modal.accion.slice(1)} registrada para ${modal.nombre}`}
               </p>
-              <p className="text-sm text-gray-600 text-center">
+              <p className="text-sm text-center" style={{ color: themeStyles.textSecondary }}>
                 {modal.mensaje.includes("Error") || modal.mensaje.includes("invalido")
                   ? ""
                   : `Sesión ${sesionSeleccionada}`}
@@ -858,63 +846,55 @@ export default function MarcarAsistencia({ esDocente }) {
         </div>
       )}
 
-      {/* Modal de Historial Completo */}
       {modalHistorial.show && modalHistorial.estudiante && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
-            {/* Header del modal */}
-            <div className="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
+          <div className="rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
+            <div className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}>
               <div>
                 <h2 className="text-lg font-semibold">Historial de Asistencia</h2>
-                <p className="text-blue-100 text-sm">{modalHistorial.estudiante.nombre} - Sesión {sesionSeleccionada}</p>
+                <p className="text-sm" style={{ color: themeStyles.background }}> {modalHistorial.estudiante.nombre} - Sesión {sesionSeleccionada}</p>
               </div>
               <button
                 onClick={cerrarHistorial}
-                className="text-white hover:text-blue-200 transition-colors"
+                className="hover:text-opacity-80 transition-colors"
+                style={{ color: '#FFFFFF' }}
               >
                 <X size={24} />
               </button>
             </div>
-
-            {/* Contenido del modal */}
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               {(() => {
                 const { sessions, totalTime } = getAllAsistenciaSessions(modalHistorial.estudiante);
-                
                 if (sessions.length === 0) {
                   return (
-                    <p className="text-center py-8 text-gray-500">Sin registros de asistencia</p>
+                    <p className="text-center py-8" style={{ color: themeStyles.textSecondary }}>Sin registros de asistencia</p>
                   );
                 }
-
                 return (
                   <div className="space-y-4">
-                    {/* Resumen */}
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="p-4 rounded-lg border" style={{ backgroundColor: `${themeStyles.primary}20`, borderColor: themeStyles.textSecondary }}>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-700 font-medium">Total de sesiones:</span>
-                        <span className="text-blue-600 font-semibold">{sessions.length}</span>
+                        <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Total de sesiones:</span>
+                        <span className="font-semibold" style={{ color: themeStyles.primary }}>{sessions.length}</span>
                       </div>
                       <div className="flex justify-between items-center mt-2">
-                        <span className="text-gray-700 font-medium">Tiempo total acumulado:</span>
-                        <span className="text-blue-600 font-semibold">
+                        <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Tiempo total acumulado:</span>
+                        <span className="font-semibold" style={{ color: themeStyles.primary }}>
                           <Clock size={16} className="inline mr-1" />
                           {totalTime}
                         </span>
                       </div>
                     </div>
-
-                    {/* Lista de sesiones */}
                     <div className="space-y-3">
-                      <h3 className="text-lg font-medium text-gray-800 border-b border-gray-200 pb-2">
+                      <h3 className="text-lg font-medium border-b pb-2" style={{ color: themeStyles.textPrimary, borderColor: themeStyles.textSecondary }}>
                         Registro detallado (más reciente primero):
                       </h3>
                       {sessions.map((session, index) => {
                         const isOpen = session.isOpen;
                         return (
-                          <div key={index} className={`border rounded-lg p-4 ${isOpen ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                          <div key={index} className="border rounded-lg p-4" style={{ backgroundColor: isOpen ? '#DCFCE7' : `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-gray-800">Sesión {index + 1}</h4>
+                              <h4 className="font-medium" style={{ color: themeStyles.textPrimary }}>Sesión {index + 1}</h4>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 isOpen ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-800'
                               }`}>
@@ -923,18 +903,18 @@ export default function MarcarAsistencia({ esDocente }) {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                               <div>
-                                <span className="font-medium text-gray-600">Entrada:</span>
-                                <p className="text-gray-800">{formatDate(session.entry.timestamp)}</p>
+                                <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Entrada:</span>
+                                <p style={{ color: themeStyles.textPrimary }}>{formatDate(session.entry.timestamp)}</p>
                               </div>
                               <div>
-                                <span className="font-medium text-gray-600">Salida:</span>
-                                <p className="text-gray-800">
+                                <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Salida:</span>
+                                <p style={{ color: themeStyles.textPrimary }}>
                                   {session.exit ? formatDate(session.exit.timestamp) : 'En curso...'}
                                 </p>
                               </div>
                               <div>
-                                <span className="font-medium text-gray-600">Duración:</span>
-                                <p className={`font-medium ${isOpen ? 'text-green-600' : 'text-blue-600'}`}>
+                                <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Duración:</span>
+                                <p className={`font-medium ${isOpen ? 'text-green-600' : ''}`} style={{ color: isOpen ? '#059669' : themeStyles.primary }}>
                                   <Clock size={14} className="inline mr-1" />
                                   {session.duration}
                                 </p>
@@ -948,12 +928,11 @@ export default function MarcarAsistencia({ esDocente }) {
                 );
               })()}
             </div>
-
-            {/* Footer del modal */}
-            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
+            <div className="px-6 py-3 border-t" style={{ backgroundColor: `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
               <button
                 onClick={cerrarHistorial}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                className="w-full py-2 px-4 rounded-md transition-colors"
+                style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}
               >
                 Cerrar
               </button>
@@ -962,13 +941,12 @@ export default function MarcarAsistencia({ esDocente }) {
         </div>
       )}
 
-      {/* Indicador de carga masiva */}
       {cargandoMasivo && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-blue-50 p-6 rounded-lg shadow-lg border border-blue-300">
+          <div className="p-6 rounded-lg shadow-lg border" style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}>
             <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-              <span className="text-gray-700">Procesando registros masivos...</span>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2" style={{ borderColor: themeStyles.primary }}></div>
+              <span style={{ color: themeStyles.textPrimary }}>Procesando registros masivos...</span>
             </div>
           </div>
         </div>

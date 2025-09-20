@@ -4,13 +4,14 @@ import {
   onSnapshot
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Area, AreaChart
+  PieChart, Pie, Cell, Area, AreaChart
 } from "recharts";
 import { TrendingUp, Calendar, Users, GraduationCap, Clock, BarChart3 } from "lucide-react";
 
-export default function Reportes() {
+// El componente ahora recibe las props `selectedTheme` y `themes`
+export default function Reportes({ selectedTheme, themes }) {
   const [asistencias, setAsistencias] = useState([]);
   const [filtroFecha, setFiltroFecha] = useState("semana");
   const [filtroSesion, setFiltroSesion] = useState("");
@@ -151,7 +152,7 @@ export default function Reportes() {
     return acc;
   }, {});
 
-  const datosAsistenciasPorHoraArray = Array.from({ length: 24 }, (_, i) => 
+  const datosAsistenciasPorHoraArray = Array.from({ length: 24 }, (_, i) =>
     datosAsistenciasPorHora[i] || { hora: `${i}:00`, cantidad: 0 }
   ).filter(item => item.cantidad > 0);
 
@@ -165,28 +166,37 @@ export default function Reportes() {
   // Obtener sesiones únicas para filtro
   const sesionesUnicas = [...new Set(asistencias.map(a => a.sesion))].sort((a, b) => parseInt(a) - parseInt(b));
 
-  // Colores para gráficos
-  const colores = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+  // Obtener estilos del tema seleccionado
+  const themeStyles = themes[selectedTheme];
+
+  // Colores para gráficos, adaptados al tema seleccionado
+  const colores = [themeStyles.primary, themeStyles.secondary, themeStyles.textSecondary, '#f59e0b', '#ef4444', '#8b5cf6'];
+  const coloresEntradaSalida = {
+    entrada: themeStyles.primary,
+    salida: themeStyles.secondary
+  };
+  const colorAreaChart = themeStyles.primary;
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 space-y-6">
+    <div className="bg-white p-6 rounded-xl shadow-md border" style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary }}>
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold text-sky-800 flex items-center gap-2">
+        <h3 className="text-xl font-semibold flex items-center gap-2" style={{ color: themeStyles.primary }}>
           <TrendingUp size={20} />
           Reportes y Estadísticas
         </h3>
       </div>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg border mt-4" style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: themeStyles.textPrimary }}>
             <Calendar size={16} className="inline mr-1" /> Período
           </label>
           <select
             value={filtroFecha}
             onChange={(e) => setFiltroFecha(e.target.value)}
-            className="w-full border border-gray-300 rounded-md p-2 text-sm"
+            className="w-full border rounded-md p-2 text-sm"
+            style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, color: themeStyles.textPrimary }}
           >
             <option value="hoy">Hoy</option>
             <option value="ayer">Ayer</option>
@@ -197,13 +207,14 @@ export default function Reportes() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: themeStyles.textPrimary }}>
             Sesión
           </label>
           <select
             value={filtroSesion}
             onChange={(e) => setFiltroSesion(e.target.value)}
-            className="w-full border border-gray-300 rounded-md p-2 text-sm"
+            className="w-full border rounded-md p-2 text-sm"
+            style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, color: themeStyles.textPrimary }}
           >
             <option value="">Todas las sesiones</option>
             {sesionesUnicas.map(sesion => (
@@ -213,13 +224,14 @@ export default function Reportes() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: themeStyles.textPrimary }}>
             <BarChart3 size={16} className="inline mr-1" /> Tipo de Gráfico
           </label>
           <select
             value={tipoGrafico}
             onChange={(e) => setTipoGrafico(e.target.value)}
-            className="w-full border border-gray-300 rounded-md p-2 text-sm"
+            className="w-full border rounded-md p-2 text-sm"
+            style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, color: themeStyles.textPrimary }}
           >
             <option value="barras">Barras por Día</option>
             <option value="sesiones">Barras por Sesión</option>
@@ -230,43 +242,43 @@ export default function Reportes() {
       </div>
 
       {/* Estadísticas generales */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-sky-50 rounded-lg border border-sky-200">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 rounded-lg border mt-4" style={{ backgroundColor: `${themeStyles.primary}1A`, borderColor: themeStyles.primary }}>
         <div className="text-center">
-          <p className="text-2xl font-bold text-sky-700">{totalRegistros}</p>
-          <p className="text-xs text-gray-600">Total Registros</p>
+          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{totalRegistros}</p>
+          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Total Registros</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-blue-600">{totalEntradas}</p>
-          <p className="text-xs text-gray-600">Entradas</p>
+          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{totalEntradas}</p>
+          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Entradas</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-red-600">{totalSalidas}</p>
-          <p className="text-xs text-gray-600">Salidas</p>
+          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{totalSalidas}</p>
+          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Salidas</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-green-600">{personasUnicas}</p>
-          <p className="text-xs text-gray-600">Personas Únicas</p>
+          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{personasUnicas}</p>
+          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Personas Únicas</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-purple-600">{sesionesActivas}</p>
-          <p className="text-xs text-gray-600">Sesiones Activas</p>
+          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{sesionesActivas}</p>
+          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Sesiones Activas</p>
         </div>
       </div>
 
       {/* Gráficos según selección */}
-      <div className="h-96">
+      <div className="h-96 mt-6">
         {tipoGrafico === "barras" && datosAsistenciasPorDiaArray.length > 0 && (
           <div>
-            <h4 className="text-lg font-medium text-gray-800 mb-4">Asistencias por Día</h4>
+            <h4 className="text-lg font-medium mb-4" style={{ color: themeStyles.textPrimary }}>Asistencias por Día</h4>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={datosAsistenciasPorDiaArray}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="fecha" />
-                <YAxis />
+                <CartesianGrid strokeDasharray="3 3" stroke={themeStyles.textSecondary} />
+                <XAxis dataKey="fecha" stroke={themeStyles.textPrimary} />
+                <YAxis stroke={themeStyles.textPrimary} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="entradas" fill="#3b82f6" name="Entradas" />
-                <Bar dataKey="salidas" fill="#10b981" name="Salidas" />
+                <Bar dataKey="entradas" fill={coloresEntradaSalida.entrada} name="Entradas" />
+                <Bar dataKey="salidas" fill={coloresEntradaSalida.salida} name="Salidas" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -274,16 +286,16 @@ export default function Reportes() {
 
         {tipoGrafico === "sesiones" && datosAsistenciasPorSesionArray.length > 0 && (
           <div>
-            <h4 className="text-lg font-medium text-gray-800 mb-4">Asistencias por Sesión</h4>
+            <h4 className="text-lg font-medium mb-4" style={{ color: themeStyles.textPrimary }}>Asistencias por Sesión</h4>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={datosAsistenciasPorSesionArray}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="sesion" />
-                <YAxis />
+                <CartesianGrid strokeDasharray="3 3" stroke={themeStyles.textSecondary} />
+                <XAxis dataKey="sesion" stroke={themeStyles.textPrimary} />
+                <YAxis stroke={themeStyles.textPrimary} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="entradas" fill="#3b82f6" name="Entradas" />
-                <Bar dataKey="salidas" fill="#10b981" name="Salidas" />
+                <Bar dataKey="entradas" fill={coloresEntradaSalida.entrada} name="Entradas" />
+                <Bar dataKey="salidas" fill={coloresEntradaSalida.salida} name="Salidas" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -291,7 +303,7 @@ export default function Reportes() {
 
         {tipoGrafico === "tipos" && datosTipoUsuarioArray.length > 0 && (
           <div>
-            <h4 className="text-lg font-medium text-gray-800 mb-4">Distribución por Tipo de Usuario</h4>
+            <h4 className="text-lg font-medium mb-4" style={{ color: themeStyles.textPrimary }}>Distribución por Tipo de Usuario</h4>
             <ResponsiveContainer width="100%" height={350}>
               <PieChart>
                 <Pie
@@ -316,18 +328,18 @@ export default function Reportes() {
 
         {tipoGrafico === "horas" && datosAsistenciasPorHoraArray.length > 0 && (
           <div>
-            <h4 className="text-lg font-medium text-gray-800 mb-4">Distribución por Horas del Día</h4>
+            <h4 className="text-lg font-medium mb-4" style={{ color: themeStyles.textPrimary }}>Distribución por Horas del Día</h4>
             <ResponsiveContainer width="100%" height={350}>
               <AreaChart data={datosAsistenciasPorHoraArray}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="hora" />
-                <YAxis />
+                <CartesianGrid strokeDasharray="3 3" stroke={themeStyles.textSecondary} />
+                <XAxis dataKey="hora" stroke={themeStyles.textPrimary} />
+                <YAxis stroke={themeStyles.textPrimary} />
                 <Tooltip />
-                <Area 
-                  type="monotone" 
-                  dataKey="cantidad" 
-                  stroke="#3b82f6" 
-                  fill="#3b82f6" 
+                <Area
+                  type="monotone"
+                  dataKey="cantidad"
+                  stroke={colorAreaChart}
+                  fill={colorAreaChart}
                   fillOpacity={0.3}
                   name="Registros"
                 />
@@ -336,26 +348,25 @@ export default function Reportes() {
           </div>
         )}
 
-        {/* Mensaje cuando no hay datos */}
         {((tipoGrafico === "barras" && datosAsistenciasPorDiaArray.length === 0) ||
           (tipoGrafico === "sesiones" && datosAsistenciasPorSesionArray.length === 0) ||
           (tipoGrafico === "tipos" && datosTipoUsuarioArray.length === 0) ||
           (tipoGrafico === "horas" && datosAsistenciasPorHoraArray.length === 0)) && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <BarChart3 size={64} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">No hay datos suficientes para mostrar este gráfico</p>
-              <p className="text-sm text-gray-500 mt-2">Prueba ajustando los filtros o seleccionando un período diferente</p>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <BarChart3 size={64} className="mx-auto mb-4" style={{ color: themeStyles.textSecondary }} />
+                <p className="text-gray-600" style={{ color: themeStyles.textSecondary }}>No hay datos suficientes para mostrar este gráfico</p>
+                <p className="text-sm text-gray-500 mt-2" style={{ color: themeStyles.textSecondary }}>Prueba ajustando los filtros o seleccionando un período diferente</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       {/* Resumen de insights */}
       {asistenciasFiltradas.length > 0 && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-800 mb-2">Resumen del Período</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+        <div className="p-4 rounded-lg mt-6" style={{ backgroundColor: `${themeStyles.primary}1A`, borderColor: themeStyles.primary, color: themeStyles.textPrimary }}>
+          <h4 className="font-medium mb-2" style={{ color: themeStyles.primary }}>Resumen del Período</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ color: themeStyles.textPrimary }}>
             <div>
               • Promedio de registros por día: {Math.round(totalRegistros / Math.max(datosAsistenciasPorDiaArray.length, 1))}
             </div>
