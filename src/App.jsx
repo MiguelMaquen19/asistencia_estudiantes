@@ -72,7 +72,33 @@ export const themes = {
   },
 };
 
+// Componente de pantalla de carga
+const LoadingScreen = ({ onLoadingComplete }) => {
+  useEffect(() => {
+    // Duración fija de 2 segundos
+    const timer = setTimeout(() => {
+      onLoadingComplete();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [onLoadingComplete]);
+
+  return (
+    <div className="fixed inset-0 bg-gradient-to-br from-green-800 to-emerald-700 flex items-center justify-center z-50">
+      {/* Solo el logo USS */}
+      <div className="w-32 h-32 relative">
+        <div className="w-32 h-32 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center">
+          <div className="text-white font-bold text-4xl">USS</div>
+        </div>
+        {/* Anillo giratorio */}
+        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-white animate-spin" />
+      </div>
+    </div>
+  );
+};
+
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
   const [mostrarModalRegistro, setMostrarModalRegistro] = useState(false);
   const [mostrarModalAdmin, setMostrarModalAdmin] = useState(false);
   const [mostrarModalDocente, setMostrarModalDocente] = useState(false);
@@ -102,6 +128,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('selectedTheme', selectedTheme);
   }, [selectedTheme]);
+
+  // Manejar la finalización de la carga
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+  };
 
   // Funciones existentes (mantengo las mismas)
   const verificarExpiracionSesion = () => {
@@ -264,8 +295,11 @@ function App() {
   // Componente del Header
   const Header = () => (
     <header
-      className="sticky top-0 z-50 bg-white shadow-lg border-b"
-      style={{ borderColor: themeStyles.textSecondary }}
+      className="sticky top-0 z-50 shadow-lg border-b"
+      style={{ 
+        backgroundColor: themeStyles.primary,
+        borderColor: themeStyles.secondary 
+      }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
@@ -274,13 +308,13 @@ function App() {
             {esDocenteAutenticado && (
               <button
                 onClick={toggleSidebar}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                style={{ color: themeStyles.primary }}
+                className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors text-white"
+                title="Abrir menú"
               >
                 <Menu size={24} />
               </button>
             )}
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight" style={{ color: themeStyles.textPrimary }}>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white">
               <span className="hidden sm:inline">Asistencia Estudiantes USS</span>
               <span className="sm:hidden">USS Asistencia</span>
             </h1>
@@ -295,8 +329,7 @@ function App() {
                   setMostrarMenuTemas(!mostrarMenuTemas);
                   setMostrarMenuOpciones(false);
                 }}
-                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
-                style={{ color: themeStyles.primary }}
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-white/10 transition-all duration-200 text-white"
                 title="Cambiar tema"
               >
                 <Palette size={20} />
@@ -346,8 +379,7 @@ function App() {
                     setMostrarMenuOpciones(!mostrarMenuOpciones);
                     setMostrarMenuTemas(false);
                   }}
-                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
-                  style={{ color: themeStyles.primary }}
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-white/10 transition-all duration-200 text-white"
                   title="Opciones"
                 >
                   <Settings size={20} />
@@ -370,7 +402,7 @@ function App() {
                       }}
                       className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
                     >
-                      <PlusCircle size={18} style={{ color: themeStyles.primary }} />
+                      <PlusCircle size={18} style={{ color: themeStyles.secondary }} />
                       <span className="text-sm font-medium text-gray-700">Agregar Estudiante</span>
                     </button>
                     <button
@@ -404,6 +436,11 @@ function App() {
       </div>
     </header>
   );
+
+  // Mostrar pantalla de carga si isLoading es true
+  if (isLoading) {
+    return <LoadingScreen onLoadingComplete={handleLoadingComplete} />;
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: themeStyles.background }}>
