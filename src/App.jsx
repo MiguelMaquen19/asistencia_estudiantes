@@ -18,7 +18,9 @@ import {
   X,
   Palette,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Sun,
+  Moon
 } from "lucide-react";
 import {
   collection,
@@ -120,6 +122,9 @@ function App() {
   const [selectedTheme, setSelectedTheme] = useState(() => {
     return localStorage.getItem('selectedTheme') || 'blue';
   });
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('isDarkMode') === 'true';
+  });
 
   // Estados para los menús desplegables del header
   const [mostrarMenuTemas, setMostrarMenuTemas] = useState(false);
@@ -128,6 +133,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('selectedTheme', selectedTheme);
   }, [selectedTheme]);
+
+  useEffect(() => {
+    localStorage.setItem('isDarkMode', isDarkMode.toString());
+  }, [isDarkMode]);
 
   // Manejar la finalización de la carga
   const handleLoadingComplete = () => {
@@ -290,7 +299,43 @@ function App() {
     setMostrarMenuTemas(false);
   };
 
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   const themeStyles = themes[selectedTheme];
+  
+  // Estilos dinámicos para tema claro/oscuro
+  const getThemeStyles = () => {
+    const baseTheme = themes[selectedTheme];
+    if (isDarkMode) {
+      return {
+        ...baseTheme,
+        background: '#1F2937',
+        textPrimary: '#F9FAFB',
+        textSecondary: '#D1D5DB',
+        cardBackground: 'rgba(55, 65, 81, 0.7)', // Más transparente
+        borderColor: 'rgba(75, 85, 99, 0.5)', // Más transparente
+        inputBackground: 'rgba(75, 85, 99, 0.6)', // Más transparente
+        inputBorder: 'rgba(107, 114, 128, 0.6)', // Más transparente
+        sidebarBackground: `linear-gradient(to bottom right, ${baseTheme.primary}dd, ${baseTheme.secondary}dd)`, // Más transparente
+        modalBackground: 'rgba(55, 65, 81, 0.9)', // Más transparente
+        modalBorder: 'rgba(75, 85, 99, 0.6)' // Más transparente
+      };
+    }
+    return {
+      ...baseTheme,
+      cardBackground: 'rgba(255, 255, 255, 0.95)', // Ligeramente transparente
+      borderColor: baseTheme.textSecondary,
+      inputBackground: '#FFFFFF',
+      inputBorder: baseTheme.textSecondary,
+      sidebarBackground: `linear-gradient(to bottom right, ${baseTheme.primary}, ${baseTheme.secondary})`,
+      modalBackground: '#FFFFFF',
+      modalBorder: baseTheme.textSecondary
+    };
+  };
+
+  const dynamicThemeStyles = getThemeStyles();
 
   // Componente del Header
   const Header = () => (
@@ -322,6 +367,15 @@ function App() {
 
           {/* Controles del header */}
           <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Toggle tema claro/oscuro */}
+            <button
+              onClick={toggleDarkMode}
+              className="flex items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-all duration-200 text-white"
+              title={isDarkMode ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
             {/* Selector de temas */}
             <div className="relative menu-dropdown">
               <button
@@ -443,7 +497,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: themeStyles.background }}>
+    <div className="min-h-screen" style={{ backgroundColor: dynamicThemeStyles.background }}>
       <div className="w-full">
         {/* Header siempre visible */}
         <Header />
@@ -451,8 +505,15 @@ function App() {
         {/* Vista principal para no autenticados */}
         {vista === "principal" && !esDocenteAutenticado && (
           <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
-              <MarcarAsistencia esDocente={esDocenteAutenticado} theme={selectedTheme} themes={themes} />
+            <div 
+              className="rounded-xl shadow-lg p-6 sm:p-8 backdrop-blur-sm"
+              style={{ 
+                backgroundColor: dynamicThemeStyles.cardBackground,
+                borderColor: dynamicThemeStyles.borderColor,
+                border: `1px solid ${dynamicThemeStyles.borderColor}`
+              }}
+            >
+              <MarcarAsistencia esDocente={esDocenteAutenticado} theme={selectedTheme} themes={themes} isDarkMode={isDarkMode} dynamicThemeStyles={dynamicThemeStyles} />
             </div>
           </div>
         )}
@@ -477,8 +538,9 @@ function App() {
                   : 'w-64 lg:w-72'
               }`}
               style={{
-                background: `linear-gradient(to bottom right, ${themeStyles.primary}, ${themeStyles.secondary})`,
-                top: '5rem'
+                background: dynamicThemeStyles.sidebarBackground,
+                top: '5rem',
+                backdropFilter: 'blur(10px)'
               }}
             >
               <div className="p-4 border-b" style={{ borderColor: themeStyles.textSecondary }}>
@@ -611,8 +673,15 @@ function App() {
             }`}>
               {vista === "principal" && (
                 <div className="p-4 sm:p-6">
-                  <div className="bg-white rounded-xl shadow-lg p-6">
-                    <MarcarAsistencia esDocente={true} theme={selectedTheme} themes={themes} />
+                  <div 
+                    className="rounded-xl shadow-lg p-6 backdrop-blur-sm"
+                    style={{ 
+                      backgroundColor: dynamicThemeStyles.cardBackground,
+                      borderColor: dynamicThemeStyles.borderColor,
+                      border: `1px solid ${dynamicThemeStyles.borderColor}`
+                    }}
+                  >
+                    <MarcarAsistencia esDocente={true} theme={selectedTheme} themes={themes} isDarkMode={isDarkMode} dynamicThemeStyles={dynamicThemeStyles} />
                   </div>
                 </div>
               )}
@@ -620,7 +689,14 @@ function App() {
               {vista === "admin" && (
                 <div className="p-4 sm:p-6">
                   {vistaAdmin === "reportes" && (
-                    <div className="bg-white rounded-xl shadow-lg p-6">
+                    <div 
+                      className="rounded-xl shadow-lg p-6 backdrop-blur-sm"
+                      style={{ 
+                        backgroundColor: dynamicThemeStyles.cardBackground,
+                        borderColor: dynamicThemeStyles.borderColor,
+                        border: `1px solid ${dynamicThemeStyles.borderColor}`
+                      }}
+                    >
                       <Reportes
                         filtroFecha={filtroFecha}
                         setFiltroFecha={setFiltroFecha}
@@ -629,11 +705,20 @@ function App() {
                         asistencias={[]}
                         selectedTheme={selectedTheme}
                         themes={themes}
+                        isDarkMode={isDarkMode}
+                        dynamicThemeStyles={dynamicThemeStyles}
                       />
                     </div>
                   )}
                   {vistaAdmin === "listado" && (
-                    <div className="bg-white rounded-xl shadow-lg p-6">
+                    <div 
+                      className="rounded-xl shadow-lg p-6 backdrop-blur-sm"
+                      style={{ 
+                        backgroundColor: dynamicThemeStyles.cardBackground,
+                        borderColor: dynamicThemeStyles.borderColor,
+                        border: `1px solid ${dynamicThemeStyles.borderColor}`
+                      }}
+                    >
                       <ListadoAsistencias
                         filtroFecha={filtroFecha}
                         setFiltroFecha={setFiltroFecha}
@@ -641,22 +726,45 @@ function App() {
                         setFiltroHora={setFiltroHora}
                         asistencias={[]}
                         selectedTheme={selectedTheme}
+                        isDarkMode={isDarkMode}
+                        dynamicThemeStyles={dynamicThemeStyles}
                       />
                     </div>
                   )}
                   {vistaAdmin === "docentes" && (
-                    <div className="bg-white rounded-xl shadow-lg p-6">
+                    <div 
+                      className="rounded-xl shadow-lg p-6 backdrop-blur-sm"
+                      style={{ 
+                        backgroundColor: dynamicThemeStyles.cardBackground,
+                        borderColor: dynamicThemeStyles.borderColor,
+                        border: `1px solid ${dynamicThemeStyles.borderColor}`
+                      }}
+                    >
                       <FormularioDocente
                         showFormAsModal={false}
                         onOpenModal={() => setMostrarModalDocente(true)}
                         selectedTheme={selectedTheme}
                         themes={themes}
+                        isDarkMode={isDarkMode}
+                        dynamicThemeStyles={dynamicThemeStyles}
                       />
                     </div>
                   )}
                   {vistaAdmin === "estudiantes" && (
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                      <ListaEstudiantes selectedTheme={selectedTheme} themes={themes} />
+                    <div 
+                      className="rounded-xl shadow-lg p-6 backdrop-blur-sm"
+                      style={{ 
+                        backgroundColor: dynamicThemeStyles.cardBackground,
+                        borderColor: dynamicThemeStyles.borderColor,
+                        border: `1px solid ${dynamicThemeStyles.borderColor}`
+                      }}
+                    >
+                      <ListaEstudiantes 
+                        selectedTheme={selectedTheme} 
+                        themes={themes} 
+                        isDarkMode={isDarkMode}
+                        dynamicThemeStyles={dynamicThemeStyles}
+                      />
                     </div>
                   )}
                 </div>
@@ -668,13 +776,21 @@ function App() {
         {/* Modales */}
         {mostrarModalRegistro && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 sm:px-6">
-            <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg sm:max-w-xl border" style={{ borderColor: themeStyles.textSecondary }}>
+            <div 
+              className="p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg sm:max-w-xl border backdrop-blur-md" 
+              style={{ 
+                backgroundColor: dynamicThemeStyles.modalBackground,
+                borderColor: dynamicThemeStyles.modalBorder
+              }}
+            >
               <FormularioRegistro
                 onClose={() => setMostrarModalRegistro(false)}
                 userRole={docenteInfo?.rol || null}
                 isLoggedIn={esDocenteAutenticado}
                 selectedTheme={selectedTheme}
                 themes={themes}
+                isDarkMode={isDarkMode}
+                dynamicThemeStyles={dynamicThemeStyles}
               />
             </div>
           </div>
@@ -682,8 +798,17 @@ function App() {
 
         {mostrarModalAdmin && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 sm:px-6">
-            <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg sm:max-w-xl border" style={{ borderColor: themeStyles.textSecondary }}>
-              <h2 className="text-xl sm:text-2xl font-semibold mb-6 text-center" style={{ color: themeStyles.textPrimary }}>
+            <div 
+              className="p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg sm:max-w-xl border backdrop-blur-md" 
+              style={{ 
+                backgroundColor: dynamicThemeStyles.modalBackground,
+                borderColor: dynamicThemeStyles.modalBorder
+              }}
+            >
+              <h2 
+                className="text-xl sm:text-2xl font-semibold mb-6 text-center" 
+                style={{ color: dynamicThemeStyles.textPrimary }}
+              >
                 Acceso Administrativo
               </h2>
               {error && (
@@ -691,7 +816,11 @@ function App() {
               )}
               <form onSubmit={handleAdminSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="dni" className="block text-sm font-medium mb-2" style={{ color: themeStyles.textPrimary }}>
+                  <label 
+                    htmlFor="dni" 
+                    className="block text-sm font-medium mb-2" 
+                    style={{ color: dynamicThemeStyles.textPrimary }}
+                  >
                     DNI Docente
                   </label>
                   <input
@@ -700,7 +829,11 @@ function App() {
                     value={dni}
                     onChange={(e) => setDni(e.target.value.replace(/[^0-9]/g, ''))}
                     className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2"
-                    style={{ borderColor: themeStyles.textSecondary, focusRingColor: themeStyles.secondary }}
+                    style={{ 
+                      backgroundColor: dynamicThemeStyles.inputBackground,
+                      borderColor: dynamicThemeStyles.inputBorder,
+                      color: dynamicThemeStyles.textPrimary
+                    }}
                     placeholder="********"
                     maxLength={8}
                     required
@@ -712,7 +845,10 @@ function App() {
                     type="button"
                     onClick={handleCancelar}
                     className="px-4 sm:px-5 py-2.5 rounded-lg hover:bg-gray-100 transition-all duration-200 text-sm sm:text-base"
-                    style={{ color: themeStyles.textPrimary }}
+                    style={{ 
+                      color: dynamicThemeStyles.textPrimary,
+                      backgroundColor: isDarkMode ? '#4B5563' : '#F3F4F6'
+                    }}
                   >
                     Cerrar
                   </button>
@@ -733,12 +869,20 @@ function App() {
 
         {mostrarModalDocente && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 sm:px-6">
-            <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg sm:max-w-xl border" style={{ borderColor: themeStyles.textSecondary }}>
+            <div 
+              className="p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg sm:max-w-xl border backdrop-blur-md" 
+              style={{ 
+                backgroundColor: dynamicThemeStyles.modalBackground,
+                borderColor: dynamicThemeStyles.modalBorder
+              }}
+            >
               <FormularioDocente
                 showFormAsModal={true}
                 onClose={() => setMostrarModalDocente(false)}
                 selectedTheme={selectedTheme}
                 themes={themes}
+                isDarkMode={isDarkMode}
+                dynamicThemeStyles={dynamicThemeStyles}
               />
             </div>
           </div>

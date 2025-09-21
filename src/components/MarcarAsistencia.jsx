@@ -41,6 +41,7 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
   const [cargandoMasivo, setCargandoMasivo] = useState(false);
   const [modalHistorial, setModalHistorial] = useState({ show: false, estudiante: null });
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [horaActual, setHoraActual] = useState(new Date());
 
   const TIEMPO_LIMITE_MISMO_USUARIO = 30000;
   const ERROR_DEBOUNCE = 5000;
@@ -56,6 +57,14 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
       return () => clearInterval(interval);
     }
   }, [vista]);
+
+  // Reloj en tiempo real
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHoraActual(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const unsubEstudiantes = onSnapshot(collection(db, "estudiantes"), (snapshot) => {
@@ -433,8 +442,31 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
         </select>
       </div>
 
-      {/* Botones en la parte superior derecha */}
-      <div className="mb-6 flex flex-col sm:flex-row justify-end gap-2">
+      {/* Reloj en tiempo real y botones en la parte superior derecha */}
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        {/* Reloj en tiempo real */}
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg border shadow-sm" style={{ backgroundColor: `${themeStyles.primary}20`, borderColor: themeStyles.textSecondary }}>
+          <Clock size={20} style={{ color: themeStyles.primary }} />
+          <div className="text-center">
+            <div className="text-lg font-bold" style={{ color: themeStyles.textPrimary }}>
+              {horaActual.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false 
+              })}
+            </div>
+            <div className="text-xs" style={{ color: themeStyles.textSecondary }}>
+              {horaActual.toLocaleDateString('es-ES', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setVista("lista")}

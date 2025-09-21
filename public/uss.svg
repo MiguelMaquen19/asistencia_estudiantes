@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Círculo de fondo verde oscuro -->
+  <circle cx="16" cy="16" r="15" fill="#047857"/>
+  
+  <!-- Texto USS en el centro -->
+  <text 
+    x="16" 
+    y="21" 
+    font-family="Arial, sans-serif" 
+    font-size="10" 
+    font-weight="900" 
+    text-anchor="middle" 
+    fill="white"
+    letter-spacing="1px"
+    stroke="#ffffff"
+    stroke-width="0.3"
+    paint-order="stroke fill"
+  >
+    USS
+  </text>
+</svg>
