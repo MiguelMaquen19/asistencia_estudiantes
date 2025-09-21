@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, updateDoc, doc } from "firebase/firestore";
+import { collection, onSnapshot, updateDoc, doc, deleteDoc, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { GraduationCap, Users, QrCode, Download, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { GraduationCap, Users, QrCode, Download, RefreshCw, Eye, EyeOff, Edit, Trash2, X } from "lucide-react";
 import QRCodeGenerator from "qrcode";
 
 export default function ListaEstudiantes({ selectedTheme, themes }) {
@@ -10,6 +10,21 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
   const [mensaje, setMensaje] = useState("");
   const [cargandoQR, setCargandoQR] = useState({});
   const [qrExpandido, setQrExpandido] = useState({});
+  
+  // Estados para editar y eliminar
+  const [editandoEstudiante, setEditandoEstudiante] = useState(null);
+  const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
+  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
+  const [estudianteAEliminar, setEstudianteAEliminar] = useState(null);
+  const [cargando, setCargando] = useState(false);
+  
+  // Estados para el formulario de edición
+  const [codigo, setCodigo] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [facultad, setFacultad] = useState("");
+  const [escuela, setEscuela] = useState("");
+  const [curso, setCurso] = useState("");
+  const [tipo, setTipo] = useState("alumno");
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "estudiantes"), (snapshot) => {
@@ -107,6 +122,184 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
     }));
   };
 
+  // Función para normalizar texto (eliminar acentos, espacios extra, convertir a minúsculas)
+  const normalizarTexto = (texto) => {
+    return texto
+      .toLowerCase()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Eliminar acentos
+      .replace(/\s+/g, ' '); // Espacios múltiples a uno solo
+  };
+
+  // Verificar si ya existe un estudiante con el mismo código o nombre
+  const verificarDuplicados = async (codigo, nombre, estudianteId = null) => {
+    try {
+      const codigoNormalizado = normalizarTexto(codigo);
+      const nombreNormalizado = normalizarTexto(nombre);
+
+      // Buscar por código exacto (más estricto)
+      const queryPorCodigo = query(
+        collection(db, "estudiantes"),
+        where("codigo", "==", codigo.trim().toUpperCase())
+      );
+      const resultadosCodigo = await getDocs(queryPorCodigo);
+
+      if (!resultadosCodigo.empty) {
+        const estudianteExistente = resultadosCodigo.docs.find(doc => doc.id !== estudianteId);
+        if (estudianteExistente) {
+          return {
+            duplicado: true,
+            tipo: 'codigo',
+            mensaje: `Ya existe un estudiante con el código: ${codigo}`
+          };
+        }
+      }
+
+      // Buscar por nombre (normalizado para evitar duplicados por mayúsculas/acentos)
+      const queryTodos = query(collection(db, "estudiantes"));
+      const todosLosEstudiantes = await getDocs(queryTodos);
+      
+      for (const doc of todosLosEstudiantes.docs) {
+        if (doc.id === estudianteId) continue; // Saltar el estudiante actual
+        const estudiante = doc.data();
+        const nombreExistenteNormalizado = normalizarTexto(estudiante.nombre);
+        
+        if (nombreExistenteNormalizado === nombreNormalizado) {
+          return {
+            duplicado: true,
+            tipo: 'nombre',
+            mensaje: `Ya existe un estudiante con el nombre: "${estudiante.nombre}" (código: ${estudiante.codigo})`
+          };
+        }
+      }
+
+      return { duplicado: false };
+    } catch (error) {
+      console.error("Error al verificar duplicados:", error);
+      return { duplicado: false }; // En caso de error, permitir la actualización
+    }
+  };
+
+  // Funciones para editar estudiante
+  const abrirModalEditar = (estudiante) => {
+    setEditandoEstudiante(estudiante);
+    setCodigo(estudiante.codigo);
+    setNombre(estudiante.nombre);
+    setFacultad(estudiante.facultad);
+    setEscuela(estudiante.escuela);
+    setCurso(estudiante.curso);
+    setTipo(estudiante.tipo);
+    setMostrarModalEditar(true);
+    setMensaje("");
+  };
+
+  const cerrarModalEditar = () => {
+    setMostrarModalEditar(false);
+    setEditandoEstudiante(null);
+    setCodigo("");
+    setNombre("");
+    setFacultad("");
+    setEscuela("");
+    setCurso("");
+    setTipo("alumno");
+    setMensaje("");
+  };
+
+  const actualizarEstudiante = async (e) => {
+    e.preventDefault();
+    setMensaje("");
+
+    if (!codigo || !nombre || !facultad || !escuela || !curso || !tipo) {
+      setMensaje("⚠️ Completa todos los campos");
+      return;
+    }
+
+    try {
+      setCargando(true);
+
+      // Verificar duplicados antes de actualizar
+      const verificacion = await verificarDuplicados(codigo, nombre, editandoEstudiante.id);
+      if (verificacion.duplicado) {
+        setMensaje(`❌ ${verificacion.mensaje}`);
+        setCargando(false);
+        return;
+      }
+
+      // Normalizar código antes de guardar
+      const codigoNormalizado = codigo.trim().toUpperCase();
+
+      // Actualizar el documento del estudiante
+      await updateDoc(doc(db, "estudiantes", editandoEstudiante.id), {
+        codigo: codigoNormalizado,
+        nombre: nombre.trim(),
+        facultad: facultad.trim(),
+        escuela: escuela.trim(),
+        curso: curso.trim(),
+        tipo,
+        fechaActualizacion: new Date(),
+      });
+
+      // Regenerar QR automáticamente si cambió cualquier dato importante
+      const datosCambiaron = (
+        codigoNormalizado !== editandoEstudiante.codigo ||
+        nombre.trim() !== editandoEstudiante.nombre ||
+        facultad.trim() !== editandoEstudiante.facultad ||
+        escuela.trim() !== editandoEstudiante.escuela ||
+        curso.trim() !== editandoEstudiante.curso ||
+        tipo !== editandoEstudiante.tipo
+      );
+
+      if (datosCambiaron) {
+        const dataUrl = await QRCodeGenerator.toDataURL(codigoNormalizado, {
+          errorCorrectionLevel: "H",
+          margin: 2,
+          width: 300,
+          color: { dark: themes[selectedTheme].primary, light: "#ffffff" },
+        });
+
+        await updateDoc(doc(db, "estudiantes", editandoEstudiante.id), {
+          qrImage: dataUrl,
+          fechaQR: new Date(),
+          qrActualizado: true
+        });
+      }
+
+      setMensaje("✅ Estudiante actualizado exitosamente.");
+      cerrarModalEditar();
+    } catch (error) {
+      console.error("Error al actualizar estudiante:", error);
+      setMensaje("❌ No se pudo actualizar el estudiante");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // Funciones para eliminar estudiante
+  const abrirModalEliminar = (estudiante) => {
+    setEstudianteAEliminar(estudiante);
+    setMostrarModalEliminar(true);
+  };
+
+  const cerrarModalEliminar = () => {
+    setMostrarModalEliminar(false);
+    setEstudianteAEliminar(null);
+  };
+
+  const eliminarEstudiante = async () => {
+    try {
+      setCargando(true);
+      await deleteDoc(doc(db, "estudiantes", estudianteAEliminar.id));
+      setMensaje("✅ Estudiante eliminado exitosamente.");
+      cerrarModalEliminar();
+    } catch (error) {
+      console.error("Error al eliminar estudiante:", error);
+      setMensaje("❌ No se pudo eliminar el estudiante");
+    } finally {
+      setCargando(false);
+    }
+  };
+
   const filteredEstudiantes = estudiantes.filter(
     (e) =>
       e.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -172,23 +365,29 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                 <div className="col-span-1 flex justify-center">
                   <div className="w-5"></div>
                 </div>
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <p className="font-semibold text-sm" style={{ color: themeStyles.primary }}>NOMBRE</p>
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1">
                   <p className="font-semibold text-sm" style={{ color: themeStyles.primary }}>CÓDIGO</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="font-semibold text-sm" style={{ color: themeStyles.primary }}>CURSO</p>
+                  <p className="font-semibold text-sm" style={{ color: themeStyles.primary }}>FACULTAD</p>
                 </div>
                 <div className="col-span-2">
                   <p className="font-semibold text-sm" style={{ color: themeStyles.primary }}>ESCUELA</p>
+                </div>
+                <div className="col-span-1">
+                  <p className="font-semibold text-sm" style={{ color: themeStyles.primary }}>CURSO</p>
                 </div>
                 <div className="col-span-1 text-center">
                   <p className="font-semibold text-sm" style={{ color: themeStyles.primary }}>TIPO</p>
                 </div>
                 <div className="col-span-1 text-center">
                   <p className="font-semibold text-sm" style={{ color: themeStyles.primary }}>QR</p>
+                </div>
+                <div className="col-span-1 text-center">
+                  <p className="font-semibold text-sm" style={{ color: themeStyles.primary }}>ACCIONES</p>
                 </div>
               </div>
             </div>
@@ -223,17 +422,20 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                       </div>
 
                       {/* Nombre y otros datos */}
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <p className="font-semibold text-gray-900 truncate">{e.nombre}</p>
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-1">
                         <p className="text-sm text-gray-600 truncate">{e.codigo}</p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-sm text-gray-600 truncate">{e.curso}</p>
+                        <p className="text-sm text-gray-600 truncate">{e.facultad}</p>
                       </div>
                       <div className="col-span-2">
                         <p className="text-sm text-gray-600 truncate">{e.escuela}</p>
+                      </div>
+                      <div className="col-span-1">
+                        <p className="text-sm text-gray-600 truncate">{e.curso}</p>
                       </div>
 
                       {/* Tipo de estudiante */}
@@ -318,6 +520,26 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                           </div>
                         )}
                       </div>
+
+                      {/* Columna de Acciones */}
+                      <div className="col-span-1 flex justify-center">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => abrirModalEditar(e)}
+                            className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            title="Editar estudiante"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => abrirModalEliminar(e)}
+                            className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Eliminar estudiante"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Contenido de la lista - Vistas Móvil/Tablet */}
@@ -357,12 +579,16 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                       {/* Información del estudiante */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 text-xs sm:text-sm">
                         <div>
-                          <span className="text-gray-500">Curso:</span>
-                          <p className="font-medium text-gray-700 truncate">{e.curso}</p>
+                          <span className="text-gray-500">Facultad:</span>
+                          <p className="font-medium text-gray-700 truncate">{e.facultad}</p>
                         </div>
                         <div>
                           <span className="text-gray-500">Escuela:</span>
                           <p className="font-medium text-gray-700 truncate">{e.escuela}</p>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="text-gray-500">Curso:</span>
+                          <p className="font-medium text-gray-700 truncate">{e.curso}</p>
                         </div>
                       </div>
 
@@ -434,6 +660,29 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                           </div>
                         )}
                       </div>
+
+                      {/* Sección de Acciones */}
+                      <div className="border-t border-gray-100 pt-3 mt-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-600">Acciones</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => abrirModalEditar(e)}
+                              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="Editar estudiante"
+                            >
+                              <Edit size={12} />
+                            </button>
+                            <button
+                              onClick={() => abrirModalEliminar(e)}
+                              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Eliminar estudiante"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </li>
                 );
@@ -442,6 +691,229 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
           </div>
         )}
       </div>
+
+      {/* Modal de Editar Estudiante */}
+      {mostrarModalEditar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-gray-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ borderColor: themeStyles.textSecondary }}>
+            <form onSubmit={actualizarEstudiante} className="p-6 space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+                  <Edit size={22} style={{ color: themeStyles.secondary }} />
+                  Editar Estudiante
+                </h2>
+                <button
+                  type="button"
+                  onClick={cerrarModalEditar}
+                  className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {mensaje && (
+                <p className="text-sm text-center italic" style={{ color: themeStyles.textSecondary }}>{mensaje}</p>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Código USS *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: U20123456"
+                    value={codigo}
+                    onChange={(e) => setCodigo(e.target.value.trim())}
+                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    style={{ borderColor: themeStyles.textSecondary, focusRingColor: themeStyles.secondary }}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre completo *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Nombre completo del estudiante"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-2"
+                    style={{ borderColor: themeStyles.textSecondary, focusRingColor: themeStyles.secondary }}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Facultad *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Facultad de Ingeniería"
+                    value={facultad}
+                    onChange={(e) => setFacultad(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-2"
+                    style={{ borderColor: themeStyles.textSecondary, focusRingColor: themeStyles.secondary }}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Escuela *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Escuela de Ingeniería de Sistemas"
+                    value={escuela}
+                    onChange={(e) => setEscuela(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-2"
+                    style={{ borderColor: themeStyles.textSecondary, focusRingColor: themeStyles.secondary }}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Curso *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Algoritmos y Programación"
+                    value={curso}
+                    onChange={(e) => setCurso(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md p-3 focus:ring-2"
+                    style={{ borderColor: themeStyles.textSecondary, focusRingColor: themeStyles.secondary }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de participante *
+                  </label>
+                  <div className="flex gap-4 items-center">
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded-md hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        value="alumno"
+                        checked={tipo === "alumno"}
+                        onChange={(e) => setTipo(e.target.value)}
+                        className="accent-sky-600"
+                        style={{ accentColor: themeStyles.secondary }}
+                      />
+                      <GraduationCap size={18} style={{ color: themeStyles.primary }} />
+                      <span className="text-sm text-gray-700">Alumno USS</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded-md hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        value="externo"
+                        checked={tipo === "externo"}
+                        onChange={(e) => setTipo(e.target.value)}
+                        className="accent-sky-600"
+                        style={{ accentColor: themeStyles.secondary }}
+                      />
+                      <Users size={18} className="text-gray-600" />
+                      <span className="text-sm text-gray-700">Externo</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={cerrarModalEditar}
+                  className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
+                  style={{ color: themeStyles.textPrimary }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cargando}
+                  className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
+                  style={{ backgroundColor: cargando ? themeStyles.secondary : themeStyles.primary }}
+                >
+                  {cargando ? "Actualizando..." : "Actualizar Estudiante"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación para Eliminar */}
+      {mostrarModalEliminar && estudianteAEliminar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-gray-200 w-full max-w-md" style={{ borderColor: themeStyles.textSecondary }}>
+            <div className="p-6 space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+                  <Trash2 size={22} style={{ color: '#DC2626' }} />
+                  Eliminar Estudiante
+                </h2>
+                <button
+                  type="button"
+                  onClick={cerrarModalEliminar}
+                  className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="text-center">
+                <p className="text-sm mb-2" style={{ color: themeStyles.textPrimary }}>
+                  ¿Estás seguro de que deseas eliminar a este estudiante?
+                </p>
+                <div className="bg-gray-50 p-4 rounded-md" style={{ backgroundColor: `${themeStyles.textSecondary}10` }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {estudianteAEliminar.tipo === "externo" ? (
+                      <Users size={20} style={{ color: themeStyles.textSecondary }} />
+                    ) : (
+                      <GraduationCap size={20} style={{ color: themeStyles.primary }} />
+                    )}
+                    <p className="font-semibold" style={{ color: themeStyles.textPrimary }}>{estudianteAEliminar.nombre}</p>
+                  </div>
+                  <p className="text-sm font-mono" style={{ color: themeStyles.textSecondary }}>Código: {estudianteAEliminar.codigo}</p>
+                  <p className="text-sm" style={{ color: themeStyles.textSecondary }}>Curso: {estudianteAEliminar.curso}</p>
+                </div>
+                <p className="text-xs mt-2 text-red-600">
+                  ⚠️ Esta acción no se puede deshacer y eliminará también el código QR
+                </p>
+              </div>
+
+              {mensaje && (
+                <p className="text-sm text-center italic" style={{ color: themeStyles.textSecondary }}>{mensaje}</p>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={cerrarModalEliminar}
+                  className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
+                  style={{ color: themeStyles.textPrimary }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={eliminarEstudiante}
+                  disabled={cargando}
+                  className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
+                  style={{ backgroundColor: cargando ? '#DC2626' : '#DC2626' }}
+                >
+                  {cargando ? "Eliminando..." : "Eliminar Estudiante"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

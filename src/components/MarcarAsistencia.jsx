@@ -100,8 +100,10 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
   };
 
   const estaPresente = (codigo) => {
-    const ultimaAccion = obtenerUltimaAccionEnSesion(codigo, sesionSeleccionada);
-    return ultimaAccion === "entrada";
+    const estudiante = estudiantes.find(e => e.codigo === codigo);
+    if (!estudiante) return false;
+    const { sessions } = getAllAsistenciaSessions(estudiante);
+    return sessions.length > 0 && sessions[0].isOpen;
   };
 
   const obtenerEstudiantesPresentes = () => {
@@ -288,8 +290,12 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
   };
 
   const obtenerProximaAccion = (codigo) => {
-    const ultimaAccion = obtenerUltimaAccionEnSesion(codigo, sesionSeleccionada);
-    return ultimaAccion === "entrada" ? "salida" : "entrada";
+    const estudiante = estudiantes.find(e => e.codigo === codigo);
+    if (!estudiante) return "entrada";
+    const { sessions } = getAllAsistenciaSessions(estudiante);
+    // Si no hay sesiones o la última sesión está cerrada, la próxima acción es entrada
+    // Si la última sesión está abierta, la próxima acción es salida
+    return (sessions.length > 0 && sessions[0].isOpen) ? "salida" : "entrada";
   };
 
   const calcularTiempoPermanencia = (entrada, salida) => {
@@ -653,7 +659,7 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
           </div>
 
           {esDocente ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {estudiantesAsistenciaFiltrados.length === 0 ? (
                 <div className="text-center py-8" style={{ color: themeStyles.textSecondary }}>
                   {hayAsistenciasEnSesion 
@@ -662,73 +668,164 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                   }
                 </div>
               ) : (
-                estudiantesAsistenciaFiltrados.map((estudiante) => {
-                  const { sessions, totalTime } = getAllAsistenciaSessions(estudiante);
-                  const isPresent = sessions.length > 0 && sessions[sessions.length - 1].isOpen;
-                  const headerBgClass = isPresent ? '#DCFCE7' : '#FEE2E2';
-                  const dotClass = isPresent ? 'bg-green-500 animate-pulse' : 'bg-red-500';
-                  const ultimaSesion = sessions[0];
+                <>
+                  {/* Estudiantes Presentes */}
+                  {(() => {
+                    const estudiantesPresentes = estudiantesAsistenciaFiltrados.filter(estudiante => {
+                      const { sessions } = getAllAsistenciaSessions(estudiante);
+                      return sessions.length > 0 && sessions[0].isOpen;
+                    });
 
-                  return (
-                    <div key={estudiante.id} className="rounded-lg border shadow-sm overflow-hidden" style={{ borderColor: themeStyles.textSecondary }}>
-                      <div className={`px-4 py-3 border-b`} style={{ backgroundColor: headerBgClass, borderColor: themeStyles.textSecondary }}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${dotClass}`}></div>
-                            <h3 className="text-sm font-semibold" style={{ color: themeStyles.textPrimary }}>{estudiante.nombre}</h3>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              isPresent ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
-                            }`}>
-                              {isPresent ? <CheckCircle size={10} className="inline mr-1" /> : null}
-                              {isPresent ? "Presente" : "Completado"}
-                            </span>
-                            {sessions.length > 1 && (
-                              <button
-                                onClick={() => abrirHistorial(estudiante)}
-                                className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-opacity-90 transition-colors"
-                                style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}
-                              >
-                                <Eye size={12} />
-                                Ver más
-                              </button>
-                            )}
-                          </div>
+                    return estudiantesPresentes.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                          <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+                            <Clock size={18} />
+                            Estudiantes Presentes ({estudiantesPresentes.length})
+                          </h3>
                         </div>
+                        {estudiantesPresentes.map((estudiante) => {
+                          const { sessions, totalTime } = getAllAsistenciaSessions(estudiante);
+                          const isPresent = sessions.length > 0 && sessions[0].isOpen;
+                          const ultimaSesion = sessions[0];
+
+                          return (
+                            <div key={estudiante.id} className="rounded-lg border shadow-sm overflow-hidden" style={{ borderColor: themeStyles.textSecondary }}>
+                              <div className={`px-4 py-3 border-b`} style={{ backgroundColor: '#DCFCE7', borderColor: themeStyles.textSecondary }}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                    <h3 className="text-sm font-semibold" style={{ color: themeStyles.textPrimary }}>{estudiante.nombre}</h3>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-200 text-green-800">
+                                      <Clock size={10} className="inline mr-1" />
+                                      Presente
+                                    </span>
+                                    {sessions.length > 1 && (
+                                      <button
+                                        onClick={() => abrirHistorial(estudiante)}
+                                        className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-opacity-90 transition-colors"
+                                        style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}
+                                      >
+                                        <Eye size={12} />
+                                        Ver más
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {ultimaSesion && (
+                                <div className="px-4 py-3">
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style={{ color: themeStyles.textSecondary }}>
+                                    <span><strong>Entrada:</strong> {formatDate(ultimaSesion.entry.timestamp)}</span>
+                                    <span className="font-medium" style={{ color: '#047857' }}>
+                                      <Clock size={12} className="inline mr-1" />
+                                      En curso: {ultimaSesion.duration}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="px-4 py-2 border-t" style={{ backgroundColor: `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Tiempo total en aula:</span>
+                                  <span className="font-semibold" style={{ color: themeStyles.primary }}>
+                                    <Clock size={14} className="inline mr-1" />
+                                    {totalTime}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      {ultimaSesion ? (
-                        <div className="px-4 py-3">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style={{ color: themeStyles.textSecondary }}>
-                            <span><strong>Entrada:</strong> {formatDate(ultimaSesion.entry.timestamp)}</span>
-                            {ultimaSesion.exit ? (
-                              <>
-                                <span><strong>Salida:</strong> {formatDate(ultimaSesion.exit.timestamp)}</span>
-                                <span className="font-medium" style={{ color: themeStyles.primary }}>{ultimaSesion.duration}</span>
-                              </>
-                            ) : (
-                              <span className="font-medium" style={{ color: '#047857' }}>
-                                <Clock size={12} className="inline mr-1" />
-                                En curso: {ultimaSesion.duration}
-                              </span>
-                            )}
-                          </div>
+                    );
+                  })()}
+
+                  {/* Estudiantes No Presentes */}
+                  {(() => {
+                    const estudiantesNoPresentes = estudiantesAsistenciaFiltrados.filter(estudiante => {
+                      const { sessions } = getAllAsistenciaSessions(estudiante);
+                      return sessions.length === 0 || !sessions[0].isOpen;
+                    });
+
+                    return estudiantesNoPresentes.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                          <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+                            <CheckCircle size={18} />
+                            Estudiantes No Presentes ({estudiantesNoPresentes.length})
+                          </h3>
                         </div>
-                      ) : (
-                        <p className="px-4 py-3 text-sm text-center" style={{ color: themeStyles.textSecondary }}>Sin registros de asistencia</p>
-                      )}
-                      <div className="px-4 py-2 border-t" style={{ backgroundColor: `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Tiempo total en aula:</span>
-                          <span className="font-semibold" style={{ color: themeStyles.primary }}>
-                            <Clock size={14} className="inline mr-1" />
-                            {totalTime}
-                          </span>
-                        </div>
+                        {estudiantesNoPresentes.map((estudiante) => {
+                          const { sessions, totalTime } = getAllAsistenciaSessions(estudiante);
+                          const isPresent = sessions.length > 0 && sessions[0].isOpen;
+                          const ultimaSesion = sessions[0];
+
+                          return (
+                            <div key={estudiante.id} className="rounded-lg border shadow-sm overflow-hidden" style={{ borderColor: themeStyles.textSecondary }}>
+                              <div className={`px-4 py-3 border-b`} style={{ backgroundColor: '#FEF3C7', borderColor: themeStyles.textSecondary }}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                                    <h3 className="text-sm font-semibold" style={{ color: themeStyles.textPrimary }}>{estudiante.nombre}</h3>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-200 text-orange-800">
+                                      <CheckCircle size={10} className="inline mr-1" />
+                                      No presente
+                                    </span>
+                                    {sessions.length > 1 && (
+                                      <button
+                                        onClick={() => abrirHistorial(estudiante)}
+                                        className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-opacity-90 transition-colors"
+                                        style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}
+                                      >
+                                        <Eye size={12} />
+                                        Ver más
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {ultimaSesion ? (
+                                <div className="px-4 py-3">
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style={{ color: themeStyles.textSecondary }}>
+                                    <span><strong>Entrada:</strong> {formatDate(ultimaSesion.entry.timestamp)}</span>
+                                    {ultimaSesion.exit ? (
+                                      <>
+                                        <span><strong>Salida:</strong> {formatDate(ultimaSesion.exit.timestamp)}</span>
+                                        <span className="font-medium" style={{ color: themeStyles.primary }}>{ultimaSesion.duration}</span>
+                                      </>
+                                    ) : (
+                                      <span className="font-medium" style={{ color: '#047857' }}>
+                                        <Clock size={12} className="inline mr-1" />
+                                        En curso: {ultimaSesion.duration}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="px-4 py-3 text-sm text-center" style={{ color: themeStyles.textSecondary }}>Sin registros de asistencia</p>
+                              )}
+                              <div className="px-4 py-2 border-t" style={{ backgroundColor: `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Tiempo total en aula:</span>
+                                  <span className="font-semibold" style={{ color: themeStyles.primary }}>
+                                    <Clock size={14} className="inline mr-1" />
+                                    {totalTime}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })()}
+                </>
               )}
             </div>
           ) : (
@@ -777,7 +874,7 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                           </td>
                           <td className="px-4 py-2 text-sm border-r" style={{ borderColor: themeStyles.textSecondary }}>
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-200 text-green-800">
-                              <CheckCircle size={12} />
+                              <Clock size={12} />
                               Presente
                             </span>
                           </td>
@@ -885,13 +982,13 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                       {sessions.map((session, index) => {
                         const isOpen = session.isOpen;
                         return (
-                          <div key={index} className="border rounded-lg p-4" style={{ backgroundColor: isOpen ? '#DCFCE7' : `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
+                          <div key={index} className="border rounded-lg p-4" style={{ backgroundColor: isOpen ? '#DCFCE7' : '#FEF3C7', borderColor: themeStyles.textSecondary }}>
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium" style={{ color: themeStyles.textPrimary }}>Sesión {index + 1}</h4>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                isOpen ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-800'
+                                isOpen ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'
                               }`}>
-                                {isOpen ? 'En curso' : 'Completada'}
+                                {isOpen ? 'Presente' : 'Completada'}
                               </span>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">

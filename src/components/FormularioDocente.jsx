@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, query, where, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, onSnapshot, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase";
 import { UserPlus, X, Trash2, Edit } from "lucide-react";
 
@@ -15,6 +15,10 @@ export default function FormularioDocente({
   const [mensaje, setMensaje] = useState("");
   const [cargando, setCargando] = useState(false);
   const [docentes, setDocentes] = useState([]);
+  const [editandoDocente, setEditandoDocente] = useState(null);
+  const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
+  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
+  const [docenteAEliminar, setDocenteAEliminar] = useState(null);
 
   // Use the themes object to get the styles for the selected theme, with a fallback
   const themeStyles = themes[selectedTheme] || { 
@@ -80,6 +84,85 @@ export default function FormularioDocente({
       } else {
         setMensaje("❌ No se pudo registrar. Verifica tu conexión o intenta de nuevo.");
       }
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const abrirModalEditar = (docente) => {
+    setEditandoDocente(docente);
+    setDni(docente.dni);
+    setNombre(docente.nombre);
+    setMostrarModalEditar(true);
+    setMensaje("");
+  };
+
+  const cerrarModalEditar = () => {
+    setMostrarModalEditar(false);
+    setEditandoDocente(null);
+    setDni("");
+    setNombre("");
+    setMensaje("");
+  };
+
+  const actualizarDocente = async (e) => {
+    e.preventDefault();
+    setMensaje("");
+
+    if (!dni || dni.length !== 8 || !nombre) {
+      setMensaje("⚠️ Completa DNI (8 dígitos) y nombre");
+      return;
+    }
+
+    try {
+      setCargando(true);
+
+      // Verificar si el DNI ya existe en otro docente
+      const q = query(collection(db, "docentes"), where("dni", "==", dni));
+      const snapshot = await getDocs(q);
+      const docenteExistente = snapshot.docs.find(doc => doc.id !== editandoDocente.id);
+      
+      if (docenteExistente) {
+        setMensaje("❌ Este DNI ya está registrado en otro docente.");
+        setCargando(false);
+        return;
+      }
+
+      await updateDoc(doc(db, "docentes", editandoDocente.id), {
+        dni,
+        nombre,
+        timestamp: new Date().toISOString()
+      });
+
+      setMensaje("✅ Docente actualizado exitosamente.");
+      cerrarModalEditar();
+    } catch (error) {
+      console.error("Error al actualizar docente:", error);
+      setMensaje("❌ No se pudo actualizar. Verifica tu conexión o intenta de nuevo.");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const abrirModalEliminar = (docente) => {
+    setDocenteAEliminar(docente);
+    setMostrarModalEliminar(true);
+  };
+
+  const cerrarModalEliminar = () => {
+    setMostrarModalEliminar(false);
+    setDocenteAEliminar(null);
+  };
+
+  const eliminarDocente = async () => {
+    try {
+      setCargando(true);
+      await deleteDoc(doc(db, "docentes", docenteAEliminar.id));
+      setMensaje("✅ Docente eliminado exitosamente.");
+      cerrarModalEliminar();
+    } catch (error) {
+      console.error("Error al eliminar docente:", error);
+      setMensaje("❌ No se pudo eliminar. Verifica tu conexión o intenta de nuevo.");
     } finally {
       setCargando(false);
     }
@@ -182,12 +265,14 @@ export default function FormularioDocente({
                       <td className="p-2 text-sm" style={{ color: themeStyles.textPrimary }}>{docente.dni}</td>
                       <td className="p-2 text-sm flex gap-2">
                         <button
+                          onClick={() => abrirModalEditar(docente)}
                           className="p-1 rounded-full text-gray-500 hover:text-green-600 transition-colors"
                           title="Editar"
                         >
                           <Edit size={16} />
                         </button>
                         <button
+                          onClick={() => abrirModalEliminar(docente)}
                           className="p-1 rounded-full text-gray-500 hover:text-red-600 transition-colors"
                           title="Eliminar"
                         >
@@ -200,6 +285,131 @@ export default function FormularioDocente({
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal de Editar Docente */}
+      {mostrarModalEditar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-gray-200 w-full max-w-md" style={{ borderColor: themeStyles.textSecondary }}>
+            <form onSubmit={actualizarDocente} className="p-6 space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+                  <Edit size={22} style={{ color: themeStyles.secondary }} />
+                  Editar Docente
+                </h2>
+                <button
+                  type="button"
+                  onClick={cerrarModalEditar}
+                  className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {mensaje && (
+                <p className="text-sm text-center italic" style={{ color: themeStyles.textSecondary }}>{mensaje}</p>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="DNI (8 dígitos)"
+                  value={dni}
+                  onChange={(e) => setDni(e.target.value.replace(/[^0-9]/g, ''))}
+                  maxLength={8}
+                  className="border rounded-md p-2 focus:ring-2 focus:outline-none"
+                  style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
+                />
+                <input
+                  type="text"
+                  placeholder="Nombre completo del docente"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  className="border rounded-md p-2 focus:ring-2 focus:outline-none"
+                  style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={cerrarModalEditar}
+                  className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
+                  style={{ color: themeStyles.textPrimary }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cargando}
+                  className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
+                  style={{ backgroundColor: cargando ? themeStyles.secondary : themeStyles.primary }}
+                >
+                  {cargando ? "Actualizando..." : "Actualizar Docente"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación para Eliminar */}
+      {mostrarModalEliminar && docenteAEliminar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-gray-200 w-full max-w-md" style={{ borderColor: themeStyles.textSecondary }}>
+            <div className="p-6 space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+                  <Trash2 size={22} style={{ color: '#DC2626' }} />
+                  Eliminar Docente
+                </h2>
+                <button
+                  type="button"
+                  onClick={cerrarModalEliminar}
+                  className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="text-center">
+                <p className="text-sm mb-2" style={{ color: themeStyles.textPrimary }}>
+                  ¿Estás seguro de que deseas eliminar al docente?
+                </p>
+                <div className="bg-gray-50 p-3 rounded-md" style={{ backgroundColor: `${themeStyles.textSecondary}10` }}>
+                  <p className="font-semibold" style={{ color: themeStyles.textPrimary }}>{docenteAEliminar.nombre}</p>
+                  <p className="text-sm" style={{ color: themeStyles.textSecondary }}>DNI: {docenteAEliminar.dni}</p>
+                </div>
+                <p className="text-xs mt-2 text-red-600">
+                  ⚠️ Esta acción no se puede deshacer
+                </p>
+              </div>
+
+              {mensaje && (
+                <p className="text-sm text-center italic" style={{ color: themeStyles.textSecondary }}>{mensaje}</p>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={cerrarModalEliminar}
+                  className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
+                  style={{ color: themeStyles.textPrimary }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={eliminarDocente}
+                  disabled={cargando}
+                  className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
+                  style={{ backgroundColor: cargando ? '#DC2626' : '#DC2626' }}
+                >
+                  {cargando ? "Eliminando..." : "Eliminar Docente"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
