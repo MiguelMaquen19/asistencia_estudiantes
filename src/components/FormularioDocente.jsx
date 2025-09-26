@@ -1,15 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  where,
-  onSnapshot,
-  doc,
-  updateDoc,
-  deleteDoc,
-} from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { UserPlus, X, Trash2, Edit } from "lucide-react";
 
@@ -19,6 +9,10 @@ export default function FormularioDocente({ selectedTheme = "blue", themes = {} 
   const [mensaje, setMensaje] = useState("");
   const [cargando, setCargando] = useState(false);
   const [docentes, setDocentes] = useState([]);
+  const [editandoDocente, setEditandoDocente] = useState(null);
+  const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
+  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
+  const [docenteAEliminar, setDocenteAEliminar] = useState(null);
 
   // modal
   const [showModal, setShowModal] = useState(false);
@@ -118,179 +112,244 @@ export default function FormularioDocente({ selectedTheme = "blue", themes = {} 
     }
   };
 
-  // eliminar docente
-  const eliminarDocente = async () => {
-    try {
-      await deleteDoc(doc(db, "docentes", docenteAEliminar.id));
-      setMensaje("✅ Docente eliminado correctamente.");
-      setDocenteAEliminar(null);
-    } catch (error) {
-      console.error("Error al eliminar docente:", error);
-      setMensaje("❌ No se pudo eliminar.");
-    }
-  };
-
   return (
-    <div className="space-y-6 w-full">
-      {/* Tabla de docentes */}
-      <div className="p-4 rounded-xl shadow-lg border bg-white">
-        <div className="flex justify-between items-center mb-4">
-          <h3
-            className="text-lg font-semibold"
-            style={{ color: themeStyles.primary }}
-          >
-            Docentes Registrados
-          </h3>
-          <button
-            onClick={abrirModalAgregar}
-            className="flex items-center gap-2 text-white px-4 py-2 rounded shadow"
-            style={{ backgroundColor: themeStyles.primary }}
-          >
-            <UserPlus size={20} />
-            Agregar Docente
-          </button>
-        </div>
-        {docentes.length === 0 ? (
-          <p className="text-sm italic">No hay docentes registrados aún.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr style={{ backgroundColor: themeStyles.secondary }}>
-                  <th className="p-2 text-white">Nombre</th>
-                  <th className="p-2 text-white">DNI</th>
-                  <th className="p-2 text-white">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {docentes.map((docente) => (
-                  <tr key={docente.id} className="border-b">
-                    <td className="p-2">{docente.nombre}</td>
-                    <td className="p-2">{docente.dni}</td>
-                    <td className="p-2 flex gap-2">
-                      <button
-                        onClick={() => abrirModalEditar(docente)}
-                        className="p-1"
-                        title="Editar"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => setDocenteAEliminar(docente)}
-                        className="p-1"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <div className={showFormAsModal ? "space-y-6" : "space-y-6 w-full"}>
+      {showFormAsModal ? (
+        <form
+          onSubmit={registrarDocente}
+          className="space-y-6 bg-white p-6 rounded-xl border border-gray-200"
+          style={{ borderColor: themeStyles.textSecondary }}
+        >
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+              <UserPlus size={22} style={{ color: themeStyles.secondary }} />
+              Agregar Docente
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+            >
+              <X size={20} />
+            </button>
           </div>
-        )}
-      </div>
 
-      {/* Modal Agregar/Editar */}
-      {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
-          <form
-            onSubmit={manejarSubmit}
-            className="space-y-6 p-6 rounded-xl border bg-white shadow-lg w-[450px]"
-          >
-            <div className="flex justify-between items-center">
-              <h2
-                className="text-xl font-bold flex items-center gap-2"
-                style={{ color: themeStyles.primary }}
-              >
-                {editandoId ? "✏️ Editar Docente" : "➕ Agregar Docente"}
-              </h2>
-              <button type="button" onClick={() => setShowModal(false)}>
-                <X size={20} />
-              </button>
+          {mensaje && (
+            <p className="text-sm text-center italic" style={{ color: themeStyles.textSecondary }}>{mensaje}</p>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="DNI (8 dígitos)"
+              value={dni}
+              onChange={(e) => setDni(e.target.value.replace(/[^0-9]/g, ''))}
+              maxLength={8}
+              className="border rounded-md p-2 focus:ring-2 focus:outline-none"
+              style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
+            />
+            <input
+              type="text"
+              placeholder="Nombre completo del docente"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="border rounded-md p-2 focus:ring-2 focus:outline-none"
+              style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
+              style={{ color: themeStyles.textPrimary }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={cargando}
+              className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
+              style={{ backgroundColor: cargando ? themeStyles.secondary : themeStyles.primary }}
+            >
+              {cargando ? "Registrando..." : "Agregar Docente"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-200" style={{ borderColor: themeStyles.textSecondary }}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold" style={{ color: themeStyles.primary }}>Docentes Registrados</h3>
+            <button
+              onClick={onOpenModal}
+              className="flex items-center gap-2 text-white px-4 py-2 rounded shadow transition-all duration-200"
+              style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF', hoverBgColor: themeStyles.secondary }}
+            >
+              <UserPlus size={20} />
+              Agregar Docente
+            </button>
+          </div>
+          {docentes.length === 0 ? (
+            <p className="text-sm italic" style={{ color: themeStyles.textSecondary }}>No hay docentes registrados aún.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr style={{ backgroundColor: themeStyles.secondary }}>
+                    <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>Nombre</th>
+                    <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>DNI</th>
+                    <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {docentes.map((docente) => (
+                    <tr key={docente.id} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: themeStyles.textSecondary }}>
+                      <td className="p-2 text-sm" style={{ color: themeStyles.textPrimary }}>{docente.nombre}</td>
+                      <td className="p-2 text-sm" style={{ color: themeStyles.textPrimary }}>{docente.dni}</td>
+                      <td className="p-2 text-sm flex gap-2">
+                        <button
+                          className="p-1 rounded-full text-gray-500 hover:text-green-600 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="p-1 rounded-full text-gray-500 hover:text-red-600 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            {mensaje && <p className="text-sm text-center italic">{mensaje}</p>}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="DNI (8 dígitos)"
-                value={dni}
-                onChange={(e) =>
-                  setDni(e.target.value.replace(/[^0-9]/g, ""))
-                }
-                maxLength={8}
-                className="border rounded-md p-2"
-              />
-              <input
-                type="text"
-                placeholder="Nombre completo"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                className="border rounded-md p-2"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 rounded-md border"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={cargando}
-                className="px-4 py-2 rounded-md font-semibold text-white"
-                style={{ backgroundColor: themeStyles.primary }}
-              >
-                {editandoId ? "Actualizar Docente" : "Agregar Docente"}
-              </button>
-            </div>
-          </form>
+          )}
         </div>
       )}
 
-      {/* Modal Confirmación Eliminar */}
-      {docenteAEliminar && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-red-600 flex items-center gap-2">
-                🗑️ Eliminar Docente
-              </h2>
-              <button onClick={() => setDocenteAEliminar(null)}>
-                <X size={20} />
-              </button>
-            </div>
-            <p className="mb-3">
-              ¿Estás seguro que deseas eliminar al docente?
-            </p>
-            <div className="bg-gray-100 p-3 rounded-md mb-3">
-              <p className="font-semibold">{docenteAEliminar.nombre}</p>
-              <p className="text-sm text-gray-600">
-                DNI: {docenteAEliminar.dni}
-              </p>
-            </div>
-            <p className="text-xs text-yellow-600 mb-4">
-              ⚠️ Esta acción no se puede deshacer
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDocenteAEliminar(null)}
-                className="px-4 py-2 rounded-md border"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={eliminarDocente}
-                className="px-4 py-2 rounded-md text-white"
-                style={{ backgroundColor: "red" }}
-              >
-                Eliminar Docente
-              </button>
+      {/* Modal de Editar Docente */}
+      {mostrarModalEditar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-gray-200 w-full max-w-md" style={{ borderColor: themeStyles.textSecondary }}>
+            <form onSubmit={actualizarDocente} className="p-6 space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+                  <Edit size={22} style={{ color: themeStyles.secondary }} />
+                  Editar Docente
+                </h2>
+                <button
+                  type="button"
+                  onClick={cerrarModalEditar}
+                  className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {mensaje && (
+                <p className="text-sm text-center italic" style={{ color: themeStyles.textSecondary }}>{mensaje}</p>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="DNI (8 dígitos)"
+                  value={dni}
+                  onChange={(e) => setDni(e.target.value.replace(/[^0-9]/g, ''))}
+                  maxLength={8}
+                  className="border rounded-md p-2 focus:ring-2 focus:outline-none"
+                  style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
+                />
+                <input
+                  type="text"
+                  placeholder="Nombre completo del docente"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  className="border rounded-md p-2 focus:ring-2 focus:outline-none"
+                  style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={cerrarModalEditar}
+                  className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
+                  style={{ color: themeStyles.textPrimary }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cargando}
+                  className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
+                  style={{ backgroundColor: cargando ? themeStyles.secondary : themeStyles.primary }}
+                >
+                  {cargando ? "Actualizando..." : "Actualizar Docente"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación para Eliminar */}
+      {mostrarModalEliminar && docenteAEliminar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-gray-200 w-full max-w-md" style={{ borderColor: themeStyles.textSecondary }}>
+            <div className="p-6 space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+                  <Trash2 size={22} style={{ color: '#DC2626' }} />
+                  Eliminar Docente
+                </h2>
+                <button
+                  type="button"
+                  onClick={cerrarModalEliminar}
+                  className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="text-center">
+                <p className="text-sm mb-2" style={{ color: themeStyles.textPrimary }}>
+                  ¿Estás seguro de que deseas eliminar al docente?
+                </p>
+                <div className="bg-gray-50 p-3 rounded-md" style={{ backgroundColor: `${themeStyles.textSecondary}10` }}>
+                  <p className="font-semibold" style={{ color: themeStyles.textPrimary }}>{docenteAEliminar.nombre}</p>
+                  <p className="text-sm" style={{ color: themeStyles.textSecondary }}>DNI: {docenteAEliminar.dni}</p>
+                </div>
+                <p className="text-xs mt-2 text-red-600">
+                  ⚠️ Esta acción no se puede deshacer
+                </p>
+              </div>
+
+              {mensaje && (
+                <p className="text-sm text-center italic" style={{ color: themeStyles.textSecondary }}>{mensaje}</p>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={cerrarModalEliminar}
+                  className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
+                  style={{ color: themeStyles.textPrimary }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={eliminarDocente}
+                  disabled={cargando}
+                  className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
+                  style={{ backgroundColor: cargando ? '#DC2626' : '#DC2626' }}
+                >
+                  {cargando ? "Eliminando..." : "Eliminar Docente"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
