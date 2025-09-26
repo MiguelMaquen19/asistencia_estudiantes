@@ -737,67 +737,73 @@ export default function MarcarAsistencia({ esDocente, theme, themes, isDarkMode,
                           const { sessions, totalTime } = getAllAsistenciaSessions(estudiante);
                           const isPresent = sessions.length > 0 && sessions[0].isOpen;
                           const ultimaSesion = sessions[0];
+                          const headerBgClass = isPresent ? (isDarkMode ? '#05966920' : 'bg-green-50') : (isDarkMode ? '#6B728020' : 'bg-gray-50');
+                          const dotClass = isPresent ? 'bg-green-500' : 'bg-gray-400';
 
-                  return (
-                    <div key={estudiante.id} className="rounded-lg border shadow-sm overflow-hidden" style={{ borderColor: themeStyles.textSecondary }}>
-                      <div className={`px-4 py-3 border-b`} style={{ backgroundColor: headerBgClass, borderColor: themeStyles.textSecondary }}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${dotClass}`}></div>
-                            <h3 className="text-sm font-semibold" style={{ color: themeStyles.textPrimary }}>{estudiante.nombre}</h3>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              isPresent ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
-                            }`}>
-                              {isPresent ? <CheckCircle size={10} className="inline mr-1" /> : null}
-                              {isPresent ? "Presente" : "Completado"}
-                            </span>
-                            {sessions.length > 1 && (
-                              <button
-                                onClick={() => abrirHistorial(estudiante)}
-                                className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-opacity-90 transition-colors"
-                                style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}
-                              >
-                                <Eye size={12} />
-                                Ver más
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                          return (
+                            <div key={estudiante.id} className="rounded-lg border shadow-sm overflow-hidden" style={{ borderColor: themeStyles.textSecondary }}>
+                              <div className={`px-4 py-3 border-b`} style={{ backgroundColor: headerBgClass, borderColor: themeStyles.textSecondary }}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full ${dotClass}`}></div>
+                                    <h3 className="text-sm font-semibold" style={{ color: themeStyles.textPrimary }}>{estudiante.nombre}</h3>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      isPresent ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                                    }`}>
+                                      {isPresent ? <CheckCircle size={10} className="inline mr-1" /> : null}
+                                      {isPresent ? "Presente" : "Completado"}
+                                    </span>
+                                    {sessions.length > 1 && (
+                                      <button
+                                        onClick={() => abrirHistorial(estudiante)}
+                                        className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-opacity-90 transition-colors"
+                                        style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}
+                                      >
+                                        <Eye size={12} />
+                                        Ver más
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {ultimaSesion ? (
+                                <div className="px-4 py-3">
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style={{ color: themeStyles.textSecondary }}>
+                                    <span><strong>Entrada:</strong> {formatDate(ultimaSesion.entry.timestamp)}</span>
+                                    {ultimaSesion.exit ? (
+                                      <>
+                                        <span><strong>Salida:</strong> {formatDate(ultimaSesion.exit.timestamp)}</span>
+                                        <span className="font-medium" style={{ color: themeStyles.primary }}>{ultimaSesion.duration}</span>
+                                      </>
+                                    ) : (
+                                      <span className="font-medium" style={{ color: '#047857' }}>
+                                        <Clock size={12} className="inline mr-1" />
+                                        En curso: {ultimaSesion.duration}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="px-4 py-3 text-sm text-center" style={{ color: themeStyles.textSecondary }}>Sin registros de asistencia</p>
+                              )}
+                              <div className="px-4 py-2 border-t" style={{ backgroundColor: `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Tiempo total en aula:</span>
+                                  <span className="font-semibold" style={{ color: themeStyles.primary }}>
+                                    <Clock size={14} className="inline mr-1" />
+                                    {totalTime}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      {ultimaSesion ? (
-                        <div className="px-4 py-3">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style={{ color: themeStyles.textSecondary }}>
-                            <span><strong>Entrada:</strong> {formatDate(ultimaSesion.entry.timestamp)}</span>
-                            {ultimaSesion.exit ? (
-                              <>
-                                <span><strong>Salida:</strong> {formatDate(ultimaSesion.exit.timestamp)}</span>
-                                <span className="font-medium" style={{ color: themeStyles.primary }}>{ultimaSesion.duration}</span>
-                              </>
-                            ) : (
-                              <span className="font-medium" style={{ color: '#047857' }}>
-                                <Clock size={12} className="inline mr-1" />
-                                En curso: {ultimaSesion.duration}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="px-4 py-3 text-sm text-center" style={{ color: themeStyles.textSecondary }}>Sin registros de asistencia</p>
-                      )}
-                      <div className="px-4 py-2 border-t" style={{ backgroundColor: `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="font-medium" style={{ color: themeStyles.textSecondary }}>Tiempo total en aula:</span>
-                          <span className="font-semibold" style={{ color: themeStyles.primary }}>
-                            <Clock size={14} className="inline mr-1" />
-                            {totalTime}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
+                    );
+                  })()}
+                </>
               )}
             </div>
           ) : (

@@ -415,7 +415,7 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                 return (
                   <li
                     key={e.id}
-                    className="p-3 sm:p-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+                    className="p-3 sm:p-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 border"
                     style={{
                       background: selectedTheme === 'dark' ? '#1F2937' : 'white',
                       borderColor: selectedTheme === 'dark' ? '#374151' : '#f3f4f6',
@@ -423,7 +423,7 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                     }}
                   >
                     {/* Contenido de la lista - Vistas Desktop y Móvil */}
-                    <div className="lg:grid grid-cols-12 gap-4 items-center hidden">
+                    <div className="hidden lg:grid grid-cols-12 gap-4 items-center">
                       {/* Icono */}
                       <div className="col-span-1 flex justify-center">
                         {e.tipo === "alumno" ? (
@@ -433,38 +433,31 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                         )}
                       </div>
 
-                      {/* Nombre y otros datos */}
-<<<<<<< HEAD
-                      <div className="col-span-3">
-                        <p className={`font-semibold truncate ${
-                          selectedTheme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-                        }`}>{e.nombre}</p>
-                      </div>
+                      {/* Nombre */}
                       <div className="col-span-2">
-                        <p className={`text-sm truncate ${
-                          selectedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                        }`}>{e.codigo}</p>
+                        <p className="font-semibold text-sm" style={{ color: themeStyles.textPrimary }}>{e.nombre}</p>
                       </div>
-                      <div className="col-span-2">
-                        <p className={`text-sm truncate ${
-                          selectedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                        }`}>{e.curso}</p>
-=======
-                      <div className="col-span-2">
-                        <p className="font-semibold text-gray-900 truncate">{e.nombre}</p>
-                      </div>
+
+                      {/* Código */}
                       <div className="col-span-1">
-                        <p className="text-sm text-gray-600 truncate">{e.codigo}</p>
+                        <p className="text-sm font-mono" style={{ color: themeStyles.textPrimary }}>{e.codigo}</p>
                       </div>
+
+                      {/* Facultad */}
                       <div className="col-span-2">
-                        <p className="text-sm text-gray-600 truncate">{e.facultad}</p>
->>>>>>> b14d28c07ce28e9ab57cb33652fe94e76b58072d
+                        <p className={`text-sm truncate ${
+                          selectedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                        }`}>{e.facultad}</p>
                       </div>
+
+                      {/* Escuela */}
                       <div className="col-span-2">
                         <p className={`text-sm truncate ${
                           selectedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                         }`}>{e.escuela}</p>
                       </div>
+
+                      {/* Curso */}
                       <div className="col-span-1">
                         <p className="text-sm text-gray-600 truncate">{e.curso}</p>
                       </div>

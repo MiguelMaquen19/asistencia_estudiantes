@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, query, where, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { UserPlus, X, Trash2, Edit } from "lucide-react";
 
@@ -9,18 +9,9 @@ export default function FormularioDocente({ selectedTheme = "blue", themes = {} 
   const [mensaje, setMensaje] = useState("");
   const [cargando, setCargando] = useState(false);
   const [docentes, setDocentes] = useState([]);
-  const [editandoDocente, setEditandoDocente] = useState(null);
-  const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
-  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
-  const [docenteAEliminar, setDocenteAEliminar] = useState(null);
-
-  // modal
   const [showModal, setShowModal] = useState(false);
-
-  // edición
   const [editandoId, setEditandoId] = useState(null);
-
-  // confirmación eliminación
+  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
   const [docenteAEliminar, setDocenteAEliminar] = useState(null);
 
   const themeStyles = themes[selectedTheme] || {
@@ -60,6 +51,46 @@ export default function FormularioDocente({ selectedTheme = "blue", themes = {} 
     setNombre(docente.nombre);
     setMensaje("");
     setShowModal(true);
+  };
+
+  // cerrar modal
+  const cerrarModal = () => {
+    setShowModal(false);
+    setMensaje("");
+    setDni("");
+    setNombre("");
+    setEditandoId(null);
+  };
+
+  // confirmar eliminación
+  const confirmarEliminar = (docente) => {
+    setDocenteAEliminar(docente);
+    setMostrarModalEliminar(true);
+  };
+
+  // cerrar modal eliminar
+  const cerrarModalEliminar = () => {
+    setMostrarModalEliminar(false);
+    setDocenteAEliminar(null);
+    setMensaje("");
+  };
+
+  // eliminar docente
+  const eliminarDocente = async () => {
+    if (!docenteAEliminar) return;
+
+    try {
+      setCargando(true);
+      await deleteDoc(doc(db, "docentes", docenteAEliminar.id));
+      setMensaje("✅ Docente eliminado correctamente.");
+    } catch (error) {
+      console.error("Error al eliminar docente:", error);
+      setMensaje("❌ Error al eliminar.");
+    } finally {
+      setCargando(false);
+      setMostrarModalEliminar(false);
+      setDocenteAEliminar(null);
+    }
   };
 
   // registrar o actualizar
@@ -112,137 +143,79 @@ export default function FormularioDocente({ selectedTheme = "blue", themes = {} 
     }
   };
 
+  const isEditing = !!editandoId;
+  const modalTitle = isEditing ? "Editar Docente" : "Agregar Docente";
+  const icon = isEditing ? <Edit size={22} style={{ color: themeStyles.secondary }} /> : <UserPlus size={22} style={{ color: themeStyles.secondary }} />;
+  const buttonText = cargando ? (isEditing ? "Actualizando..." : "Registrando...") : (isEditing ? "Actualizar Docente" : "Agregar Docente");
+
   return (
-    <div className={showFormAsModal ? "space-y-6" : "space-y-6 w-full"}>
-      {showFormAsModal ? (
-        <form
-          onSubmit={registrarDocente}
-          className="space-y-6 bg-white p-6 rounded-xl border border-gray-200"
-          style={{ borderColor: themeStyles.textSecondary }}
-        >
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
-              <UserPlus size={22} style={{ color: themeStyles.secondary }} />
-              Agregar Docente
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {mensaje && (
-            <p className="text-sm text-center italic" style={{ color: themeStyles.textSecondary }}>{mensaje}</p>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="DNI (8 dígitos)"
-              value={dni}
-              onChange={(e) => setDni(e.target.value.replace(/[^0-9]/g, ''))}
-              maxLength={8}
-              className="border rounded-md p-2 focus:ring-2 focus:outline-none"
-              style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
-            />
-            <input
-              type="text"
-              placeholder="Nombre completo del docente"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="border rounded-md p-2 focus:ring-2 focus:outline-none"
-              style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
-              style={{ color: themeStyles.textPrimary }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={cargando}
-              className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
-              style={{ backgroundColor: cargando ? themeStyles.secondary : themeStyles.primary }}
-            >
-              {cargando ? "Registrando..." : "Agregar Docente"}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-200" style={{ borderColor: themeStyles.textSecondary }}>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold" style={{ color: themeStyles.primary }}>Docentes Registrados</h3>
-            <button
-              onClick={onOpenModal}
-              className="flex items-center gap-2 text-white px-4 py-2 rounded shadow transition-all duration-200"
-              style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF', hoverBgColor: themeStyles.secondary }}
-            >
-              <UserPlus size={20} />
-              Agregar Docente
-            </button>
-          </div>
-          {docentes.length === 0 ? (
-            <p className="text-sm italic" style={{ color: themeStyles.textSecondary }}>No hay docentes registrados aún.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr style={{ backgroundColor: themeStyles.secondary }}>
-                    <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>Nombre</th>
-                    <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>DNI</th>
-                    <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {docentes.map((docente) => (
-                    <tr key={docente.id} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: themeStyles.textSecondary }}>
-                      <td className="p-2 text-sm" style={{ color: themeStyles.textPrimary }}>{docente.nombre}</td>
-                      <td className="p-2 text-sm" style={{ color: themeStyles.textPrimary }}>{docente.dni}</td>
-                      <td className="p-2 text-sm flex gap-2">
-                        <button
-                          className="p-1 rounded-full text-gray-500 hover:text-green-600 transition-colors"
-                          title="Editar"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          className="p-1 rounded-full text-gray-500 hover:text-red-600 transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+    <div className="space-y-6 w-full">
+      <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-200" style={{ borderColor: themeStyles.textSecondary }}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold" style={{ color: themeStyles.primary }}>Docentes Registrados</h3>
+          <button
+            onClick={abrirModalAgregar}
+            className="flex items-center gap-2 text-white px-4 py-2 rounded shadow transition-all duration-200 hover:bg-blue-600"
+            style={{ backgroundColor: themeStyles.primary }}
+          >
+            <UserPlus size={20} />
+            Agregar Docente
+          </button>
         </div>
-      )}
+        {docentes.length === 0 ? (
+          <p className="text-sm italic" style={{ color: themeStyles.textSecondary }}>No hay docentes registrados aún.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr style={{ backgroundColor: themeStyles.secondary }}>
+                  <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>Nombre</th>
+                  <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>DNI</th>
+                  <th className="text-left p-2 text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {docentes.map((docente) => (
+                  <tr key={docente.id} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: themeStyles.textSecondary }}>
+                    <td className="p-2 text-sm" style={{ color: themeStyles.textPrimary }}>{docente.nombre}</td>
+                    <td className="p-2 text-sm" style={{ color: themeStyles.textPrimary }}>{docente.dni}</td>
+                    <td className="p-2 text-sm flex gap-2">
+                      <button
+                        onClick={() => abrirModalEditar(docente)}
+                        className="p-1 rounded-full text-gray-500 hover:text-green-600 transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => confirmarEliminar(docente)}
+                        className="p-1 rounded-full text-gray-500 hover:text-red-600 transition-colors"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-      {/* Modal de Editar Docente */}
-      {mostrarModalEditar && (
+      {/* Modal de Agregar/Editar Docente */}
+      {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl border border-gray-200 w-full max-w-md" style={{ borderColor: themeStyles.textSecondary }}>
-            <form onSubmit={actualizarDocente} className="p-6 space-y-6">
+            <form onSubmit={manejarSubmit} className="p-6 space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
-                  <Edit size={22} style={{ color: themeStyles.secondary }} />
-                  Editar Docente
+                  {icon}
+                  {modalTitle}
                 </h2>
                 <button
                   type="button"
-                  onClick={cerrarModalEditar}
+                  onClick={cerrarModal}
                   className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X size={20} />
@@ -261,7 +234,7 @@ export default function FormularioDocente({ selectedTheme = "blue", themes = {} 
                   onChange={(e) => setDni(e.target.value.replace(/[^0-9]/g, ''))}
                   maxLength={8}
                   className="border rounded-md p-2 focus:ring-2 focus:outline-none"
-                  style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
+                  style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary }}
                 />
                 <input
                   type="text"
@@ -269,14 +242,14 @@ export default function FormularioDocente({ selectedTheme = "blue", themes = {} 
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   className="border rounded-md p-2 focus:ring-2 focus:outline-none"
-                  style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary, focusRingColor: themeStyles.secondary }}
+                  style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary }}
                 />
               </div>
 
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={cerrarModalEditar}
+                  onClick={cerrarModal}
                   className="px-4 py-2 rounded-md hover:bg-gray-100 transition"
                   style={{ color: themeStyles.textPrimary }}
                 >
@@ -288,7 +261,7 @@ export default function FormularioDocente({ selectedTheme = "blue", themes = {} 
                   className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
                   style={{ backgroundColor: cargando ? themeStyles.secondary : themeStyles.primary }}
                 >
-                  {cargando ? "Actualizando..." : "Actualizar Docente"}
+                  {buttonText}
                 </button>
               </div>
             </form>
@@ -345,7 +318,7 @@ export default function FormularioDocente({ selectedTheme = "blue", themes = {} 
                   onClick={eliminarDocente}
                   disabled={cargando}
                   className={`px-4 py-2 rounded-md font-semibold text-white transition-all duration-200`}
-                  style={{ backgroundColor: cargando ? '#DC2626' : '#DC2626' }}
+                  style={{ backgroundColor: '#DC2626' }}
                 >
                   {cargando ? "Eliminando..." : "Eliminar Docente"}
                 </button>
