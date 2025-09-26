@@ -120,7 +120,11 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
   return (
     <div className="space-y-4 sm:space-y-6 w-full">
       {/* Contenedor Principal con estilo de tema */}
-      <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl border border-gray-200 shadow-lg">
+      <div className={`p-3 sm:p-4 md:p-6 rounded-xl border shadow-lg transition-colors duration-300 ${
+        selectedTheme === 'dark'
+          ? 'bg-gray-800 text-white border-gray-700'
+          : 'bg-white text-gray-900 border-gray-200'
+      }`}>
         {/* Encabezado y Barra de Búsqueda */}
         <div className="flex justify-between items-center mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2" style={{ color: themeStyles.primary }}>
@@ -138,15 +142,16 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
           placeholder="Buscar por nombre, código, curso o escuela..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="
-            w-full border rounded-md p-2.5 sm:p-3 mb-4 sm:mb-6
-            border-gray-300
-            bg-white
-            text-gray-900
+          className={`
+            w-full rounded-md p-2.5 sm:p-3 mb-4 sm:mb-6
             focus:ring-2 focus:ring-sky-500 focus:border-sky-500
             text-sm sm:text-base
             transition-colors duration-300
-          "
+            ${selectedTheme === 'dark' 
+              ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400' 
+              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            }
+          `}
         />
 
         {/* Mensaje de notificación */}
@@ -159,15 +164,23 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
         {/* Mensaje de lista vacía */}
         {filteredEstudiantes.length === 0 ? (
           <div className="text-center py-8">
-            <GraduationCap size={48} className="mx-auto text-gray-400 mb-3" />
-            <p className="text-gray-600">
+            <GraduationCap size={48} className={`mx-auto mb-3 ${
+              selectedTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+            }`} />
+            <p className={`${
+              selectedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
               {busqueda ? "No se encontraron estudiantes con esa búsqueda." : "No hay estudiantes registrados."}
             </p>
           </div>
         ) : (
           <div className="space-y-3 sm:space-y-4">
             {/* Encabezados de columnas (Solo visible en desktop) */}
-            <div className="hidden lg:block bg-gray-50 border border-gray-200 rounded-lg p-4 transition-colors duration-300" style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}>
+            <div className={`hidden lg:block rounded-lg p-4 transition-colors duration-300 ${
+              selectedTheme === 'dark'
+                ? 'bg-gray-700 border border-gray-600'
+                : 'bg-gray-50 border border-gray-200'
+            }`} style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}>
               <div className="grid grid-cols-12 gap-4 items-center">
                 <div className="col-span-1 flex justify-center">
                   <div className="w-5"></div>
@@ -203,13 +216,12 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                 return (
                   <li
                     key={e.id}
-                    className="
-                      bg-white
-                      p-3 sm:p-4 rounded-lg
-                      border border-gray-100
-                      shadow-sm hover:shadow-md
-                      transition-all duration-300
-                    "
+                    className="p-3 sm:p-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+                    style={{
+                      background: selectedTheme === 'dark' ? '#1F2937' : 'white',
+                      borderColor: selectedTheme === 'dark' ? '#374151' : '#f3f4f6',
+                      color: selectedTheme === 'dark' ? 'white' : 'inherit'
+                    }}
                   >
                     {/* Contenido de la lista - Vistas Desktop y Móvil */}
                     <div className="lg:grid grid-cols-12 gap-4 items-center hidden">
@@ -224,16 +236,24 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
 
                       {/* Nombre y otros datos */}
                       <div className="col-span-3">
-                        <p className="font-semibold text-gray-900 truncate">{e.nombre}</p>
+                        <p className={`font-semibold truncate ${
+                          selectedTheme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+                        }`}>{e.nombre}</p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-sm text-gray-600 truncate">{e.codigo}</p>
+                        <p className={`text-sm truncate ${
+                          selectedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                        }`}>{e.codigo}</p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-sm text-gray-600 truncate">{e.curso}</p>
+                        <p className={`text-sm truncate ${
+                          selectedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                        }`}>{e.curso}</p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-sm text-gray-600 truncate">{e.escuela}</p>
+                        <p className={`text-sm truncate ${
+                          selectedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                        }`}>{e.escuela}</p>
                       </div>
 
                       {/* Tipo de estudiante */}
@@ -331,10 +351,14 @@ export default function ListaEstudiantes({ selectedTheme, themes }) {
                             <Users size={20} className="text-gray-600 flex-shrink-0" />
                           )}
                           <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                            <h3 className={`font-semibold text-sm sm:text-base truncate ${
+                              selectedTheme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+                            }`}>
                               {e.nombre}
                             </h3>
-                            <p className="text-xs sm:text-sm text-gray-600 font-mono">
+                            <p className={`text-xs sm:text-sm font-mono ${
+                              selectedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                            }`}>
                               {e.codigo}
                             </p>
                           </div>

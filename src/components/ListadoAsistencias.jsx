@@ -8,9 +8,9 @@ import { ClipboardCheck, Calendar, Search, Download, FileText, Users, Graduation
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { themes } from "../App";
+import { themes } from "../themes";
 
-export default function ListadoAsistencias({ selectedTheme }) {
+export default function ListadoAsistencias({ selectedTheme, isDarkMode }) {
   const [asistencias, setAsistencias] = useState([]);
   const [asistenciasFiltradas, setAsistenciasFiltradas] = useState([]);
   const [filtroFecha, setFiltroFecha] = useState("hoy");
@@ -280,8 +280,29 @@ export default function ListadoAsistencias({ selectedTheme }) {
   const totalEntradas = asistenciasFiltradas.filter(a => a.accion === "entrada").length;
   const totalSalidas = asistenciasFiltradas.filter(a => a.accion === "salida").length;
 
+  // Función para obtener los estilos dinámicos
+  const getContainerStyles = () => {
+    if (isDarkMode) {
+      return {
+        backgroundColor: '#1F2937', // Fondo oscuro
+        borderColor: '#374151', // Borde más visible en modo oscuro
+        color: '#F9FAFB' // Texto claro
+      };
+    }
+    return {
+      backgroundColor: '#FFFFFF', // Fondo claro
+      borderColor: '#E5E7EB', // Borde suave
+      color: themeStyles.textPrimary
+    };
+  };
+
+  const containerStyles = getContainerStyles();
+
   return (
-    <div className="p-3 sm:p-4 md:p-6 rounded-xl shadow-md border space-y-4 sm:space-y-6" style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}>
+    <div 
+      className="p-3 sm:p-4 md:p-6 rounded-xl shadow-md border space-y-4 sm:space-y-6" 
+      style={containerStyles}
+    >
       {/* Header con título y botones - Mejorado para móviles */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -333,10 +354,14 @@ export default function ListadoAsistencias({ selectedTheme }) {
       </div>
 
       {/* Filtros - Optimizados para móvil y tablet */}
-      <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border" style={{ backgroundColor: themeStyles.primary + '05', borderColor: themeStyles.textSecondary }}>
+      <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border" 
+        style={{ 
+          backgroundColor: isDarkMode ? '#111827' : '#FFFFFF',
+          borderColor: isDarkMode ? '#374151' : '#E5E7EB'
+        }}>
         {/* Búsqueda */}
         <div className="sm:col-span-2 lg:col-span-1">
-          <label className="block text-sm font-medium mb-2" style={{ color: themeStyles.textPrimary }}>
+          <label className="block text-sm font-medium mb-2" style={{ color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary }}>
             <Search size={16} className="inline mr-1" style={{ color: themeStyles.primary }}/> Buscar
           </label>
           <input
@@ -346,9 +371,9 @@ export default function ListadoAsistencias({ selectedTheme }) {
             placeholder="Buscar por nombre o código..."
             className="w-full border rounded-md p-2.5 text-sm focus:outline-none focus:ring-2"
             style={{ 
-                borderColor: themeStyles.textSecondary,
-                backgroundColor: themeStyles.background,
-                color: themeStyles.textPrimary,
+                borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                backgroundColor: isDarkMode ? '#374151' : '#FFFFFF',
+                color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary,
                 focusRingColor: themeStyles.primary
             }}
           />
@@ -456,7 +481,11 @@ export default function ListadoAsistencias({ selectedTheme }) {
             <li
               key={a.id}
               className="p-4 sm:p-5 rounded-lg border shadow-sm hover:shadow-md transition-all duration-200"
-              style={{ backgroundColor: '#FFFFFF', borderColor: themeStyles.textSecondary }}
+              style={{ 
+                backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+                borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+                color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary
+              }}
             >
               {/* Vista Desktop - Grid */}
               <div className="hidden lg:grid grid-cols-6 gap-4 items-center">
@@ -464,11 +493,11 @@ export default function ListadoAsistencias({ selectedTheme }) {
                 <div className="col-span-2">
                   <div className="flex items-center gap-2">
                     {a.tipo === "externo" ? (
-                      <Users size={16} className="flex-shrink-0" style={{ color: themeStyles.textSecondary }} />
+                      <Users size={16} className="flex-shrink-0" style={{ color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary }} />
                     ) : (
                       <GraduationCap size={16} className="flex-shrink-0" style={{ color: themeStyles.primary }}/>
                     )}
-                    <span className="font-medium truncate" style={{ color: themeStyles.textPrimary }}>{a.nombre}</span>
+                    <span className="font-medium truncate" style={{ color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary }}>{a.nombre}</span>
                   </div>
                 </div>
 

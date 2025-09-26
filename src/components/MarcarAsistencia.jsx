@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import BarcodeScanner from "react-qr-barcode-scanner";
 
-export default function MarcarAsistencia({ esDocente, theme, themes }) {
+export default function MarcarAsistencia({ esDocente, theme, themes, isDarkMode, dynamicThemeStyles }) {
   const [estudiantes, setEstudiantes] = useState([]);
   const [asistencias, setAsistencias] = useState([]);
   const [busqueda, setBusqueda] = useState("");
@@ -48,6 +48,13 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
 
   // Estilos del tema
   const themeStyles = themes[theme] || themes.blue;
+  
+  // Estilos dinámicos basados en el modo oscuro/claro
+  const getContainerStyles = () => ({
+    backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+    borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+    color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary
+  });
 
   useEffect(() => {
     if (vista === "asistencia") {
@@ -406,17 +413,28 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
   );
 
   return (
-    <div className="p-4 sm:p-6 rounded-xl shadow-md border w-full" style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary, marginLeft: esDocente ? '0' : 'auto', maxWidth: esDocente ? 'none' : '80rem' }}>
+    <div className="p-4 sm:p-6 rounded-xl shadow-md border w-full" 
+      style={{ 
+        backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+        borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+        marginLeft: esDocente ? '0' : 'auto', 
+        maxWidth: esDocente ? 'none' : '80rem',
+        color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary
+      }}>
       {/* Header con información del modo */}
-      <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: `${themeStyles.primary}20`, borderColor: themeStyles.textSecondary }}>
+      <div className="mb-4 p-3 rounded-lg border" 
+        style={{ 
+          backgroundColor: isDarkMode ? '#111827' : `${themeStyles.primary}20`,
+          borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary 
+        }}>
         <div className="flex items-center gap-2">
-          <UserCheck size={20} style={{ color: esDocente ? '#047857' : themeStyles.primary }} />
-          <span className="font-medium" style={{ color: themeStyles.textPrimary }}>
+          <UserCheck size={20} style={{ color: isDarkMode ? '#93C5FD' : (esDocente ? '#047857' : themeStyles.primary) }} />
+          <span className="font-medium" style={{ color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary }}>
             {esDocente ? "Modo Docente - Control de Asistencia" : "Registro de Asistencia"}
           </span>
         </div>
         {esDocente && (
-          <p className="text-xs mt-1" style={{ color: themeStyles.textSecondary }}>
+          <p className="text-xs mt-1" style={{ color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary }}>
             Puedes seleccionar múltiples estudiantes y marcar asistencia masiva
           </p>
         )}
@@ -424,7 +442,7 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
 
       {/* Combobox para seleccionar sesión */}
       <div className="mb-6">
-        <label htmlFor="sesion" className="block text-sm font-medium mb-2" style={{ color: themeStyles.textPrimary }}>
+        <label htmlFor="sesion" className="block text-sm font-medium mb-2" style={{ color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary }}>
           Seleccionar Sesión
         </label>
         <select
@@ -432,7 +450,11 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
           value={sesionSeleccionada}
           onChange={(e) => setSesionSeleccionada(e.target.value)}
           className="w-full border rounded-md p-2 focus:outline-none focus:ring-2"
-          style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, focusRingColor: themeStyles.secondary }}
+          style={{ 
+            borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+            backgroundColor: isDarkMode ? '#111827' : '#FFFFFF',
+            color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary 
+          }}
         >
           {Array.from({ length: 12 }, (_, i) => i + 1).map((num) => (
             <option key={num} value={num.toString()}>
@@ -445,10 +467,15 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
       {/* Reloj en tiempo real y botones en la parte superior derecha */}
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         {/* Reloj en tiempo real */}
-        <div className="flex items-center gap-2 px-4 py-2 rounded-lg border shadow-sm" style={{ backgroundColor: `${themeStyles.primary}20`, borderColor: themeStyles.textSecondary }}>
-          <Clock size={20} style={{ color: themeStyles.primary }} />
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg border shadow-sm" 
+          style={{ 
+            backgroundColor: isDarkMode ? '#111827' : `${themeStyles.primary}20`, 
+            borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+            color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary
+          }}>
+          <Clock size={20} style={{ color: isDarkMode ? '#93C5FD' : themeStyles.primary }} />
           <div className="text-center">
-            <div className="text-lg font-bold" style={{ color: themeStyles.textPrimary }}>
+            <div className="text-lg font-bold" style={{ color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary }}>
               {horaActual.toLocaleTimeString('es-ES', { 
                 hour: '2-digit', 
                 minute: '2-digit', 
@@ -456,7 +483,7 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                 hour12: false 
               })}
             </div>
-            <div className="text-xs" style={{ color: themeStyles.textSecondary }}>
+            <div className="text-xs" style={{ color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary }}>
               {horaActual.toLocaleDateString('es-ES', { 
                 weekday: 'long', 
                 year: 'numeric', 
@@ -476,9 +503,13 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                 : "hover:bg-opacity-10"
             }`}
             style={{
-              backgroundColor: vista === "lista" ? themeStyles.secondary : themeStyles.background,
-              borderColor: themeStyles.textSecondary,
-              color: vista === "lista" ? '#FFFFFF' : themeStyles.textPrimary,
+              backgroundColor: vista === "lista" 
+                ? themeStyles.secondary 
+                : (isDarkMode ? '#111827' : '#FFFFFF'),
+              borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+              color: isDarkMode 
+                ? (vista === "lista" ? '#FFFFFF' : '#D1D5DB')
+                : (vista === "lista" ? '#FFFFFF' : themeStyles.textPrimary),
             }}
           >
             <List size={18} />
@@ -492,9 +523,13 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                 : "hover:bg-opacity-10"
             }`}
             style={{
-              backgroundColor: vista === "asistencia" ? themeStyles.secondary : themeStyles.background,
-              borderColor: themeStyles.textSecondary,
-              color: vista === "asistencia" ? '#FFFFFF' : themeStyles.textPrimary,
+              backgroundColor: vista === "asistencia" 
+                ? themeStyles.secondary 
+                : (isDarkMode ? '#111827' : '#FFFFFF'),
+              borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+              color: isDarkMode 
+                ? (vista === "asistencia" ? '#FFFFFF' : '#D1D5DB')
+                : (vista === "asistencia" ? '#FFFFFF' : themeStyles.textPrimary),
             }}
           >
             <Search size={18} />
@@ -508,9 +543,13 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                 : "hover:bg-opacity-10"
             }`}
             style={{
-              backgroundColor: vista === "escaner" ? themeStyles.secondary : themeStyles.background,
-              borderColor: themeStyles.textSecondary,
-              color: vista === "escaner" ? '#FFFFFF' : themeStyles.textPrimary,
+              backgroundColor: vista === "escaner" 
+                ? themeStyles.secondary 
+                : (isDarkMode ? '#111827' : '#FFFFFF'),
+              borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+              color: isDarkMode 
+                ? (vista === "escaner" ? '#FFFFFF' : '#D1D5DB')
+                : (vista === "escaner" ? '#FFFFFF' : themeStyles.textPrimary),
             }}
           >
             <Camera size={18} />
@@ -525,12 +564,21 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
         className="w-full border rounded-md p-2 mb-6 focus:outline-none focus:ring-2"
-        style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, focusRingColor: themeStyles.secondary }}
+        style={{ 
+          borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+          backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+          color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary,
+          caretColor: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary,
+        }}
       />
 
       {/* Controles para docentes */}
       {esDocente && vista === "lista" && (
-        <div className="mb-4 p-4 rounded-lg border" style={{ backgroundColor: `${themeStyles.primary}20`, borderColor: themeStyles.textSecondary }}>
+        <div className="mb-4 p-4 rounded-lg border" 
+          style={{ 
+            backgroundColor: isDarkMode ? '#111827' : `${themeStyles.primary}20`, 
+            borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary 
+          }}>
           <div className="flex flex-wrap gap-3 items-center">
             <button
               onClick={seleccionarTodos}
@@ -581,7 +629,7 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
               <li
                 key={e.id}
                 className="flex flex-col sm:flex-row items-center justify-between p-3 rounded-md border shadow-sm"
-                style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}
+                style={getContainerStyles()}
               >
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   {esDocente && (
@@ -603,8 +651,8 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                     <GraduationCap size={20} style={{ color: themeStyles.primary }} />
                   )}
                   <div>
-                    <p className="font-semibold" style={{ color: themeStyles.textPrimary }}>{e.nombre}</p>
-                    <p className="text-xs" style={{ color: themeStyles.textSecondary }}>
+                    <p className="font-semibold" style={{ color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary }}>{e.nombre}</p>
+                    <p className="text-xs" style={{ color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary }}>
                       {e.codigo} • {e.tipo === "externo" ? "Externo" : "Alumno USS"}
                     </p>
                   </div>
@@ -699,15 +747,15 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                       </div>
                       {ultimaSesion ? (
                         <div className="px-4 py-3">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style={{ color: themeStyles.textSecondary }}>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style={{ color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary }}>
                             <span><strong>Entrada:</strong> {formatDate(ultimaSesion.entry.timestamp)}</span>
                             {ultimaSesion.exit ? (
                               <>
                                 <span><strong>Salida:</strong> {formatDate(ultimaSesion.exit.timestamp)}</span>
-                                <span className="font-medium" style={{ color: themeStyles.primary }}>{ultimaSesion.duration}</span>
+                                <span className="font-medium" style={{ color: isDarkMode ? '#93C5FD' : themeStyles.primary }}>{ultimaSesion.duration}</span>
                               </>
                             ) : (
-                              <span className="font-medium" style={{ color: '#047857' }}>
+                              <span className="font-medium" style={{ color: isDarkMode ? '#34D399' : '#047857' }}>
                                 <Clock size={12} className="inline mr-1" />
                                 En curso: {ultimaSesion.duration}
                               </span>
@@ -733,12 +781,18 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full table-auto border rounded-md shadow-sm" style={{ borderColor: themeStyles.textSecondary }}>
-                <thead className="text-left" style={{ backgroundColor: `${themeStyles.primary}20`, color: themeStyles.textPrimary }}>
+              <table className="min-w-full table-auto border rounded-md shadow-sm" style={{ 
+                borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+                backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF'
+              }}>
+                <thead className="text-left" style={{ 
+                  backgroundColor: isDarkMode ? '#111827' : `${themeStyles.primary}20`,
+                  color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary
+                }}>
                   <tr>
-                    <th className="px-4 py-2 border-r" style={{ borderColor: themeStyles.textSecondary }}>Nombre</th>
-                    <th className="px-4 py-2 border-r" style={{ borderColor: themeStyles.textSecondary }}>Hora de Entrada</th>
-                    <th className="px-4 py-2 border-r" style={{ borderColor: themeStyles.textSecondary }}>Estado</th>
+                    <th className="px-4 py-2 border-r" style={{ borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary }}>Nombre</th>
+                    <th className="px-4 py-2 border-r" style={{ borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary }}>Hora de Entrada</th>
+                    <th className="px-4 py-2 border-r" style={{ borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary }}>Estado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -841,11 +895,11 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
 
       {modalHistorial.show && modalHistorial.estudiante && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
+          <div className="rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden" style={getContainerStyles()}>
             <div className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: themeStyles.primary, color: '#FFFFFF' }}>
               <div>
                 <h2 className="text-lg font-semibold">Historial de Asistencia</h2>
-                <p className="text-sm" style={{ color: themeStyles.background }}> {modalHistorial.estudiante.nombre} - Sesión {sesionSeleccionada}</p>
+                <p className="text-sm opacity-90">{modalHistorial.estudiante.nombre} - Sesión {sesionSeleccionada}</p>
               </div>
               <button
                 onClick={cerrarHistorial}
@@ -885,9 +939,15 @@ export default function MarcarAsistencia({ esDocente, theme, themes }) {
                       {sessions.map((session, index) => {
                         const isOpen = session.isOpen;
                         return (
-                          <div key={index} className="border rounded-lg p-4" style={{ backgroundColor: isOpen ? '#DCFCE7' : `${themeStyles.background}80`, borderColor: themeStyles.textSecondary }}>
+                          <div key={index} className="border rounded-lg p-4" style={{ 
+                            backgroundColor: isDarkMode 
+                              ? (isOpen ? '#065F46' : '#1F2937')
+                              : (isOpen ? '#DCFCE7' : '#FFFFFF'),
+                            borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+                            color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary
+                          }}>
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium" style={{ color: themeStyles.textPrimary }}>Sesión {index + 1}</h4>
+                              <h4 className="font-medium" style={{ color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary }}>Sesión {index + 1}</h4>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 isOpen ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-800'
                               }`}>

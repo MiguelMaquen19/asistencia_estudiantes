@@ -30,49 +30,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../src/firebase";
 
-// Definir los temas
-export const themes = {
-  blue: {
-    primary: '#1E40AF',
-    secondary: '#3B82F6',
-    background: '#F8FAFC',
-    textPrimary: '#1F2937',
-    textSecondary: '#6B7280',
-    name: 'Azul'
-  },
-  gray: {
-    primary: '#374151',
-    secondary: '#6B7280',
-    background: '#F9FAFB',
-    textPrimary: '#1F2937',
-    textSecondary: '#6B7280',
-    name: 'Gris'
-  },
-  green: {
-    primary: '#047857',
-    secondary: '#10B981',
-    background: '#F0FDF4',
-    textPrimary: '#1F2937',
-    textSecondary: '#065F46',
-    name: 'Verde'
-  },
-  purple: {
-    primary: '#7C3AED',
-    secondary: '#A855F7',
-    background: '#FAF5FF',
-    textPrimary: '#1F2937',
-    textSecondary: '#7C2D12',
-    name: 'Púrpura'
-  },
-  indigo: {
-    primary: '#4F46E5',
-    secondary: '#6366F1',
-    background: '#F0F4FF',
-    textPrimary: '#1F2937',
-    textSecondary: '#4338CA',
-    name: 'Índigo'
-  },
-};
+import { themes } from './themes';
 
 // Componente de pantalla de carga
 const LoadingScreen = ({ onLoadingComplete }) => {
@@ -314,24 +272,40 @@ function App() {
         background: '#1F2937',
         textPrimary: '#F9FAFB',
         textSecondary: '#D1D5DB',
-        cardBackground: 'rgba(55, 65, 81, 0.7)', // Más transparente
-        borderColor: 'rgba(75, 85, 99, 0.5)', // Más transparente
-        inputBackground: 'rgba(75, 85, 99, 0.6)', // Más transparente
-        inputBorder: 'rgba(107, 114, 128, 0.6)', // Más transparente
-        sidebarBackground: `linear-gradient(to bottom right, ${baseTheme.primary}dd, ${baseTheme.secondary}dd)`, // Más transparente
-        modalBackground: 'rgba(55, 65, 81, 0.9)', // Más transparente
-        modalBorder: 'rgba(75, 85, 99, 0.6)' // Más transparente
+        cardBackground: '#111827', // Fondo más oscuro para las tarjetas
+        containerBackground: '#1F2937', // Fondo para contenedores
+        borderColor: '#374151', // Borde más visible en modo oscuro
+        inputBackground: '#374151', // Fondo más oscuro para inputs
+        inputBorder: '#4B5563',
+        sidebarBackground: `linear-gradient(to bottom right, ${baseTheme.primary}dd, ${baseTheme.secondary}dd)`,
+        modalBackground: '#111827', // Fondo más oscuro para modales
+        modalBorder: '#374151',
+        // Nuevos estilos para elementos específicos
+        tableBackground: '#1F2937',
+        tableBorderColor: '#374151',
+        tableHeaderBackground: '#111827',
+        tableRowHoverBackground: '#2C3B4E',
+        buttonBackground: baseTheme.primary, // Mantiene el color del tema
+        buttonHoverBackground: baseTheme.secondary // Mantiene el color del tema para hover
       };
     }
     return {
       ...baseTheme,
-      cardBackground: 'rgba(255, 255, 255, 0.95)', // Ligeramente transparente
-      borderColor: baseTheme.textSecondary,
-      inputBackground: '#FFFFFF',
-      inputBorder: baseTheme.textSecondary,
+      cardBackground: '#FFFFFF',
+      containerBackground: '#FFFFFF',
+      borderColor: '#E5E7EB',
+      inputBackground: '#F9FAFB',
+      inputBorder: '#D1D5DB',
       sidebarBackground: `linear-gradient(to bottom right, ${baseTheme.primary}, ${baseTheme.secondary})`,
       modalBackground: '#FFFFFF',
-      modalBorder: baseTheme.textSecondary
+      modalBorder: '#E5E7EB',
+      // Estilos correspondientes para modo claro
+      tableBackground: '#FFFFFF',
+      tableBorderColor: '#E5E7EB',
+      tableHeaderBackground: '#F9FAFB',
+      tableRowHoverBackground: '#F3F4F6',
+      buttonBackground: baseTheme.primary,
+      buttonHoverBackground: baseTheme.secondary
     };
   };
 
@@ -497,7 +471,10 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: dynamicThemeStyles.background }}>
+    <div className="min-h-screen relative" style={{ 
+      backgroundColor: isDarkMode ? '#111827' : '#F3F4F6',
+      color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary 
+    }}>
       <div className="w-full">
         {/* Header siempre visible */}
         <Header />
@@ -508,9 +485,9 @@ function App() {
             <div 
               className="rounded-xl shadow-lg p-6 sm:p-8 backdrop-blur-sm"
               style={{ 
-                backgroundColor: dynamicThemeStyles.cardBackground,
-                borderColor: dynamicThemeStyles.borderColor,
-                border: `1px solid ${dynamicThemeStyles.borderColor}`
+                backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+                borderColor: isDarkMode ? '#374151' : dynamicThemeStyles.borderColor,
+                border: `1px solid ${isDarkMode ? '#374151' : dynamicThemeStyles.borderColor}`
               }}
             >
               <MarcarAsistencia esDocente={esDocenteAutenticado} theme={selectedTheme} themes={themes} isDarkMode={isDarkMode} dynamicThemeStyles={dynamicThemeStyles} />
@@ -676,9 +653,9 @@ function App() {
                   <div 
                     className="rounded-xl shadow-lg p-6 backdrop-blur-sm"
                     style={{ 
-                      backgroundColor: dynamicThemeStyles.cardBackground,
-                      borderColor: dynamicThemeStyles.borderColor,
-                      border: `1px solid ${dynamicThemeStyles.borderColor}`
+                      backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+                      borderColor: isDarkMode ? '#374151' : dynamicThemeStyles.borderColor,
+                      border: `1px solid ${isDarkMode ? '#374151' : dynamicThemeStyles.borderColor}`
                     }}
                   >
                     <MarcarAsistencia esDocente={true} theme={selectedTheme} themes={themes} isDarkMode={isDarkMode} dynamicThemeStyles={dynamicThemeStyles} />

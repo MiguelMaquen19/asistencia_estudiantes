@@ -1,17 +1,32 @@
 import { useEffect, useState } from "react";
-import {
-  collection,
-  onSnapshot
-} from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, Area, AreaChart
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Area,
+  AreaChart
 } from "recharts";
-import { TrendingUp, Calendar, Users, GraduationCap, Clock, BarChart3 } from "lucide-react";
+import {
+  TrendingUp,
+  Calendar,
+  Users,
+  GraduationCap,
+  Clock,
+  BarChart3
+} from "lucide-react";
 
-// El componente ahora recibe las props `selectedTheme` y `themes`
-export default function Reportes({ selectedTheme, themes }) {
+// El componente recibe las props para el tema y modo oscuro
+export default function Reportes({ selectedTheme, themes, isDarkMode }) {
   const [asistencias, setAsistencias] = useState([]);
   const [filtroFecha, setFiltroFecha] = useState("semana");
   const [filtroSesion, setFiltroSesion] = useState("");
@@ -178,25 +193,44 @@ export default function Reportes({ selectedTheme, themes }) {
   const colorAreaChart = themeStyles.primary;
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md border" style={{ borderColor: themeStyles.textSecondary, color: themeStyles.textPrimary }}>
+    <div className="p-6 rounded-xl shadow-md border" 
+      style={{ 
+        backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+        borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+        color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary 
+      }}>
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold flex items-center gap-2" style={{ color: themeStyles.primary }}>
+        <h3 className="text-xl font-semibold flex items-center gap-2" 
+          style={{ 
+            color: isDarkMode ? '#93C5FD' : themeStyles.primary 
+          }}>
           <TrendingUp size={20} />
           Reportes y Estadísticas
         </h3>
       </div>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg border mt-4" style={{ backgroundColor: themeStyles.background, borderColor: themeStyles.textSecondary }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg border mt-4" 
+        style={{ 
+          backgroundColor: isDarkMode ? themeStyles.background : '#FFFFFF',
+          borderColor: isDarkMode ? themeStyles.textSecondary : themeStyles.textSecondary 
+        }}>
         <div>
-          <label className="block text-sm font-medium mb-1" style={{ color: themeStyles.textPrimary }}>
+          <label className="block text-sm font-medium mb-1" 
+            style={{ 
+              color: themeStyles.textPrimary
+            }}>
             <Calendar size={16} className="inline mr-1" /> Período
           </label>
           <select
             value={filtroFecha}
             onChange={(e) => setFiltroFecha(e.target.value)}
             className="w-full border rounded-md p-2 text-sm"
-            style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, color: themeStyles.textPrimary }}
+            style={{ 
+              borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+              backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+              color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary
+            }}
           >
             <option value="hoy">Hoy</option>
             <option value="ayer">Ayer</option>
@@ -214,7 +248,11 @@ export default function Reportes({ selectedTheme, themes }) {
             value={filtroSesion}
             onChange={(e) => setFiltroSesion(e.target.value)}
             className="w-full border rounded-md p-2 text-sm"
-            style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, color: themeStyles.textPrimary }}
+            style={{ 
+              borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+              backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+              color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary 
+            }}
           >
             <option value="">Todas las sesiones</option>
             {sesionesUnicas.map(sesion => (
@@ -224,14 +262,21 @@ export default function Reportes({ selectedTheme, themes }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1" style={{ color: themeStyles.textPrimary }}>
+          <label className="block text-sm font-medium mb-1" 
+            style={{ 
+              color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary 
+            }}>
             <BarChart3 size={16} className="inline mr-1" /> Tipo de Gráfico
           </label>
           <select
             value={tipoGrafico}
             onChange={(e) => setTipoGrafico(e.target.value)}
             className="w-full border rounded-md p-2 text-sm"
-            style={{ borderColor: themeStyles.textSecondary, backgroundColor: themeStyles.background, color: themeStyles.textPrimary }}
+            style={{ 
+              borderColor: isDarkMode ? '#374151' : themeStyles.textSecondary,
+              backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+              color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary 
+            }}
           >
             <option value="barras">Barras por Día</option>
             <option value="sesiones">Barras por Sesión</option>
@@ -242,43 +287,94 @@ export default function Reportes({ selectedTheme, themes }) {
       </div>
 
       {/* Estadísticas generales */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 rounded-lg border mt-4" style={{ backgroundColor: `${themeStyles.primary}1A`, borderColor: themeStyles.primary }}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 rounded-lg border mt-4" 
+        style={{ 
+          backgroundColor: isDarkMode ? '#111827' : `${themeStyles.primary}1A`,
+          borderColor: isDarkMode ? '#374151' : themeStyles.primary
+        }}>
         <div className="text-center">
-          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{totalRegistros}</p>
-          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Total Registros</p>
+          <p className="text-2xl font-bold" 
+            style={{ 
+              color: isDarkMode ? '#93C5FD' : themeStyles.primary
+            }}>{totalRegistros}</p>
+          <p className="text-xs" 
+            style={{ 
+              color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary
+            }}>Total Registros</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{totalEntradas}</p>
-          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Entradas</p>
+          <p className="text-2xl font-bold" 
+            style={{ 
+              color: isDarkMode ? '#93C5FD' : themeStyles.primary 
+            }}>{totalEntradas}</p>
+          <p className="text-xs" 
+            style={{ 
+              color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary 
+            }}>Entradas</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{totalSalidas}</p>
-          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Salidas</p>
+          <p className="text-2xl font-bold" 
+            style={{ 
+              color: isDarkMode ? '#93C5FD' : themeStyles.primary 
+            }}>{totalSalidas}</p>
+          <p className="text-xs" 
+            style={{ 
+              color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary 
+            }}>Salidas</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{personasUnicas}</p>
-          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Personas Únicas</p>
+          <p className="text-2xl font-bold" 
+            style={{ 
+              color: isDarkMode ? '#93C5FD' : themeStyles.primary 
+            }}>{personasUnicas}</p>
+          <p className="text-xs" 
+            style={{ 
+              color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary 
+            }}>Personas Únicas</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold" style={{ color: themeStyles.primary }}>{sesionesActivas}</p>
-          <p className="text-xs text-gray-600" style={{ color: themeStyles.textSecondary }}>Sesiones Activas</p>
+          <p className="text-2xl font-bold" 
+            style={{ 
+              color: isDarkMode ? '#93C5FD' : themeStyles.primary 
+            }}>{sesionesActivas}</p>
+          <p className="text-xs" 
+            style={{ 
+              color: isDarkMode ? '#D1D5DB' : themeStyles.textSecondary 
+            }}>Sesiones Activas</p>
         </div>
       </div>
 
       {/* Gráficos según selección */}
-      <div className="h-96 mt-6">
+      <div className="h-96 mt-6" style={{ 
+        backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+        borderRadius: '0.5rem',
+        padding: '1rem'
+      }}>
         {tipoGrafico === "barras" && datosAsistenciasPorDiaArray.length > 0 && (
           <div>
-            <h4 className="text-lg font-medium mb-4" style={{ color: themeStyles.textPrimary }}>Asistencias por Día</h4>
+            <h4 className="text-lg font-medium mb-4" 
+              style={{ 
+                color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary
+              }}>Asistencias por Día</h4>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={datosAsistenciasPorDiaArray}>
-                <CartesianGrid strokeDasharray="3 3" stroke={themeStyles.textSecondary} />
-                <XAxis dataKey="fecha" stroke={themeStyles.textPrimary} />
-                <YAxis stroke={themeStyles.textPrimary} />
-                <Tooltip />
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  stroke={isDarkMode ? '#374151' : themeStyles.textSecondary} />
+                <XAxis 
+                  dataKey="fecha" 
+                  stroke={isDarkMode ? '#D1D5DB' : themeStyles.textPrimary} />
+                <YAxis 
+                  stroke={isDarkMode ? '#D1D5DB' : themeStyles.textPrimary} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: isDarkMode ? '#111827' : '#FFFFFF',
+                    border: `1px solid ${isDarkMode ? '#374151' : themeStyles.textSecondary}`,
+                    color: isDarkMode ? '#F9FAFB' : themeStyles.textPrimary
+                  }}/>
                 <Legend />
-                <Bar dataKey="entradas" fill={coloresEntradaSalida.entrada} name="Entradas" />
-                <Bar dataKey="salidas" fill={coloresEntradaSalida.salida} name="Salidas" />
+                <Bar dataKey="entradas" fill={themeStyles.primary} name="Entradas" />
+                <Bar dataKey="salidas" fill={themeStyles.secondary} name="Salidas" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -354,9 +450,9 @@ export default function Reportes({ selectedTheme, themes }) {
           (tipoGrafico === "horas" && datosAsistenciasPorHoraArray.length === 0)) && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <BarChart3 size={64} className="mx-auto mb-4" style={{ color: themeStyles.textSecondary }} />
-                <p className="text-gray-600" style={{ color: themeStyles.textSecondary }}>No hay datos suficientes para mostrar este gráfico</p>
-                <p className="text-sm text-gray-500 mt-2" style={{ color: themeStyles.textSecondary }}>Prueba ajustando los filtros o seleccionando un período diferente</p>
+                <BarChart3 size={64} className="mx-auto mb-4" style={{ color: themeStyles.secondary }} />
+                <p style={{ color: themeStyles.textPrimary }}>No hay datos suficientes para mostrar este gráfico</p>
+                <p className="text-sm mt-2" style={{ color: themeStyles.textSecondary }}>Prueba ajustando los filtros o seleccionando un período diferente</p>
               </div>
             </div>
           )}
@@ -370,9 +466,7 @@ export default function Reportes({ selectedTheme, themes }) {
             <div>
               • Promedio de registros por día: {Math.round(totalRegistros / Math.max(datosAsistenciasPorDiaArray.length, 1))}
             </div>
-            <div>
-              • Ratio entradas/salidas: {totalSalidas > 0 ? (totalEntradas / totalSalidas).toFixed(2) : 'N/A'}
-            </div>
+            
             <div>
               • Personas más activas: {personasUnicas} usuarios únicos
             </div>
